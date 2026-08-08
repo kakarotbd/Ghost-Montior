@@ -292,7 +292,7 @@ You must use Python **3.12** specifically. Other versions may cause compatibilit
 
 <div align="center">
 
-`v9.0` · `Windows` · `Cloudflare Workers` · `Firebase`
+`v1.0` · `Windows` · `Cloudflare Workers` · `Firebase`
 
 Made by [@kakarotbd](https://instagram.com/kakarotbd) — follow on Instagram
 
