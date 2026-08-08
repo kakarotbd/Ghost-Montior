@@ -1,4 +1,4 @@
-#made by kakarotbd
+# Made By kakarotbd
 # Made only for educational purposes. Do not use it for anything harmful or illegal, otherwise you may face cybercrime charges.
 #  OneDrive Sync Helper v3.2.1
 # Microsoft Corporation — Windows Synchronization Service
