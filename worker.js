@@ -1,13 +1,4 @@
 /**
- * ╔══════════════════════════════════════════════════════╗
- *  GHOST MONITOR — Cloudflare Worker
- *  Deploy করার পর শুধু ৫টা env variable দাও:
- *
- *  FIREBASE_DB_URL  = https://YOUR-PROJECT-default-rtdb.firebaseio.com
- *  FIREBASE_SECRET  = Firebase DB Secret (Project Settings → Service Accounts → Database Secrets)
- *  GHOST_SECRET     = যেকোনো random string (Python-এর token)
- *  DASHBOARD_PASS   = তোমার dashboard password
- *  SESSION_SECRET   = যেকোনো আরেকটা random string
  *
  *  KV Binding: RATE_LIMIT → create a KV namespace, bind it with var name RATE_LIMIT
  *
