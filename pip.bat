@@ -30,7 +30,7 @@ echo Python detected:
 %PY% --version
 echo.
 
-echo [1/3] Updating pip...
+echo [1/4] Updating pip...
 %PY% -m pip install --upgrade pip
 
 if errorlevel 1 (
@@ -40,7 +40,7 @@ if errorlevel 1 (
 )
 
 echo.
-echo [2/3] Installing project dependencies...
+echo [2/4] Installing project dependencies...
 echo.
 
 %PY% -m pip install --upgrade ^
@@ -49,7 +49,9 @@ echo.
     numpy ^
     PyAudio ^
     requests ^
-    psutil
+    psutil ^
+    pywin32 ^
+    pynput
 
 if errorlevel 1 (
     echo.
@@ -59,7 +61,7 @@ if errorlevel 1 (
 )
 
 echo.
-echo [3/3] Installing Nuitka...
+echo [3/4] Installing Nuitka...
 echo.
 
 %PY% -m pip install --upgrade Nuitka
@@ -72,12 +74,10 @@ if errorlevel 1 (
 )
 
 echo.
-echo ========================================
-echo          SETUP COMPLETE
-echo ========================================
+echo [4/4] Verifying dependencies...
 echo.
 
-%PY% -c "import numpy, cv2, PIL, pyaudio, requests, psutil; print('All dependencies OK')"
+%PY% -c "import numpy, cv2, PIL, pyaudio, requests, psutil, win32api, win32con, pynput; print('All dependencies OK')"
 
 if errorlevel 1 (
     echo.
@@ -90,7 +90,9 @@ echo.
 %PY% -m nuitka --version
 
 echo.
-echo Setup completed successfully.
+echo ========================================
+echo          SETUP COMPLETE
+echo ========================================
 echo.
 
 pause

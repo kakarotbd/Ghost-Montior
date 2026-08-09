@@ -1,38 +1,37 @@
 @echo off
-setlocal EnableExtensions
+setlocal
 
-title Build
+title Windows Services - Fast Nuitka Build
+color 0A
 
 set "PY=py -3.12"
 set "OUT=exe"
 set "NAME=Windows Services.exe"
 
 echo ========================================
-echo          FAST NUITKA BUILD
+echo       FAST NUITKA BUILD
 echo ========================================
 echo.
 
 %PY% --version
-if errorlevel 1 exit /b 1
 
 echo.
-echo Checking modules...
+echo Checking dependencies...
 
-%PY% -c "import audioop,numpy,cv2,PIL,pyaudio,requests,psutil; print('Dependencies OK')"
-if errorlevel 1 exit /b 1
+%PY% -c "import numpy, cv2, PIL, pyaudio, requests, psutil, win32api, win32con, pynput; print('Dependencies OK')"
 
-echo.
-echo Checking Nuitka...
+if errorlevel 1 (
+    color 0C
+    echo Dependency check failed.
+    pause
+    exit /b 1
+)
 
-%PY% -m nuitka --version
-if errorlevel 1 exit /b 1
-
-if exist "%OUT%" rmdir /s /q "%OUT%"
-mkdir "%OUT%"
+if not exist "%OUT%" mkdir "%OUT%"
 
 echo.
 echo ========================================
-echo              BUILDING
+echo             BUILDING
 echo ========================================
 echo.
 
@@ -46,26 +45,40 @@ echo.
     --enable-plugin=tk-inter ^
     --include-package=PIL ^
     --include-package=cv2 ^
-    --include-package=numpy ^
     --include-package=pyaudio ^
     --include-package=requests ^
     --include-package=psutil ^
+    --nofollow-import-to=numpy.testing ^
+    --nofollow-import-to=numpy.tests ^
+    --nofollow-import-to=numpy._core.tests ^
     --lto=no ^
     --assume-yes-for-downloads ^
     main.py
 
 if errorlevel 1 (
+    color 0C
     echo.
-    echo BUILD FAILED
+    echo ========================================
+    echo             BUILD FAILED
+    echo ========================================
+    echo.
     pause
     exit /b 1
 )
 
 echo.
+echo Cleaning temporary files...
+
+for /d %%D in ("%OUT%\*.build") do rmdir /s /q "%%D"
+for /d %%D in ("%OUT%\*.dist") do rmdir /s /q "%%D"
+for /d %%D in ("%OUT%\*.onefile-build") do rmdir /s /q "%%D"
+
+echo.
 echo ========================================
-echo BUILD COMPLETE
+echo          BUILD SUCCESSFUL
 echo ========================================
 echo.
+echo Output:
 echo %OUT%\%NAME%
 echo.
 
