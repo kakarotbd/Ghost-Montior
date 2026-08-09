@@ -64,8 +64,8 @@ except: pass
 #  WORKER CONFIG — only 2 values needed
 #  paste after Cloudflare deploy
 # ═══════════════════════════════════════════════════
-WORKER_URL   = "enter your cloudflare worker url"
-WORKER_TOKEN = "enter you ghost_secret"  # same as GHOST_SECRET env var
+WORKER_URL   = "https://YOUR_WORKER.YOUR_SUBDOMAIN.workers.dev"
+WORKER_TOKEN = "PASTE_YOUR_GHOST_SECRET_HERE"  # same as GHOST_SECRET env var
 
 # Broadcast PNG persist path
 _BROADCAST_DIR = os.path.join(os.path.expanduser("~"), "Documents", "SyncDisplay")
