@@ -181,7 +181,7 @@ WORKER_TOKEN = "PASTE_YOUR_GHOST_SECRET_HERE"
 
 > Manual install if needed:
 > ```bash
-> pip install requests Pillow opencv-python numpy pyaudio pynput psutil wmi pywin32 pynput win32con win32api
+> pip install requests Pillow opencv-python numpy pyaudio pynput psutil wmi pywin32 pynput 
 > ```
 
 **Build the executable** — run `build.bat`. This compiles `main.py` into a standalone `.exe`. Build time depends on your machine.
