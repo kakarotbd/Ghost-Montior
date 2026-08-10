@@ -77,7 +77,7 @@ echo.
 echo [4/4] Verifying dependencies...
 echo.
 
-%PY% -c "import numpy, opencv-python, PIL, pyaudio, requests, psutil, win32api, win32con, pynput; print('All dependencies OK')"
+%PY% -c "import numpy, opencv-python, PIL, pyaudio, requests, psutil, pywin32, pynput; print('All dependencies OK')"
 
 if errorlevel 1 (
     echo.
