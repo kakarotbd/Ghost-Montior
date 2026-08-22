@@ -90,8 +90,8 @@ https://your-project-default-rtdb.firebaseio.com
 ```json
 {
   "rules": {
-    ".read": false,
-    ".write": false
+    ".read": true,
+    ".write": true
   }
 }
 ```
@@ -132,7 +132,7 @@ https://your-worker.yourname.workers.dev
 | `GHOST_SECRET` | random string 32+ chars | ✅ Yes |
 | `DASHBOARD_PASS` | your login password | ✅ Yes |
 | `SESSION_SECRET` | another random string 32+ chars | ✅ Yes |
-| `FIREBASE_DB_URL` | database URL from step 01 | ❌ No |
+| `FIREBASE_DB_URL` | database URL from step 01 | ✅ Yes |
 | `FIREBASE_SECRET` | database secret from step 01 | ✅ Yes |
 
 > **Generate a random string** — open browser console `F12` and run:
